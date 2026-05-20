@@ -1,0 +1,2220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#0A0A0A" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="PipeEstimator" />
+<meta name="application-name" content="PipeEstimator" />
+<title>Tingle Pipe Estimator — Offline</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="%230A0A0A"/><circle cx="32" cy="32" r="18" stroke="%2300E5FF" stroke-width="4" fill="none"/><circle cx="32" cy="32" r="8" fill="%2300E5FF"/></svg>' />
+<style>
+/* ===================================================================== */
+/*  PIPE ESTIMATOR — Single-file offline app (PC EXE + Android APK ready) */
+/*  Design language: Industrial Control-Room, dark obsidian + neon accent */
+/* ===================================================================== */
+:root{
+  --bg:#0A0A0A;
+  --surface:#121212;
+  --surface-elev:#1C1C1E;
+  --border:#2C2C2E;
+  --border-strong:#3A3A3C;
+  --text:#FFFFFF;
+  --text-2:#C7C7CC;
+  --muted:#8E8E93;
+  --dim:#636366;
+  --neon:#00E5FF;
+  --neon-soft:rgba(0,229,255,.12);
+  --blue:#0A84FF;
+  --green:#32D74B;
+  --red:#FF453A;
+  --orange:#FF9F0A;
+  --yellow:#FFD60A;
+  --purple:#BF5AF2;
+  --magenta:#FF2D92;
+  --header-h:64px;
+  --dash-h:46px;
+  --nav-h:54px;
+  --tap:44px;
+  --r:6px;
+  --mono:'JetBrains Mono','SF Mono','Cascadia Code','Consolas','Roboto Mono',ui-monospace,monospace;
+  --ui:'Manrope','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px;line-height:1.4;overscroll-behavior-y:none}
+body{min-height:100vh;min-height:100dvh;padding-bottom:env(safe-area-inset-bottom)}
+
+/* embedded fonts via system-stack only — guarantees 100% offline operation */
+
+/* ----- Layout shell ----- */
+.app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+header.topbar{position:sticky;top:0;z-index:90;background:linear-gradient(180deg,#101010,#0A0A0A);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;gap:10px;min-height:var(--header-h)}
+.logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo .ring{width:30px;height:30px;border-radius:50%;border:3px solid var(--neon);position:relative;flex-shrink:0}
+.logo .ring::after{content:'';position:absolute;inset:5px;background:var(--neon);border-radius:50%}
+.brand{font-weight:900;letter-spacing:-.5px;font-size:16px;line-height:1}
+.brand small{display:block;font-weight:600;font-size:10px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-top:2px}
+.topbar-actions{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+/* ----- Live dashboard ----- */
+.live{display:flex;gap:8px;overflow-x:auto;background:var(--surface);border-bottom:1px solid var(--border);padding:8px 12px;min-height:var(--dash-h);scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.live::-webkit-scrollbar{height:4px}
+.live::-webkit-scrollbar-thumb{background:var(--border-strong)}
+.kpi{flex-shrink:0;display:flex;flex-direction:column;justify-content:center;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:5px 10px;min-width:120px}
+.kpi .lbl{font-size:9px;font-weight:800;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+.kpi .val{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:-.5px;margin-top:1px}
+.kpi.quote .val{color:var(--green)}
+.kpi.mh .val{color:var(--red)}
+.kpi.di .val{color:var(--purple)}
+.kpi.cpm .val{color:var(--neon)}
+.kpi.sched .val{color:var(--yellow)}
+.kpi.peak .val{color:var(--orange)}
+
+/* ----- Tab nav ----- */
+nav.tabs{display:flex;overflow-x:auto;background:var(--bg);border-bottom:1px solid var(--border);scrollbar-width:none;position:sticky;top:calc(var(--header-h) + var(--dash-h));z-index:80;-webkit-overflow-scrolling:touch}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{appearance:none;border:0;background:transparent;color:var(--muted);padding:0 14px;min-height:var(--nav-h);font-family:var(--ui);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px}
+nav.tabs button .ix{font-family:var(--mono);font-size:10px;color:var(--dim);font-weight:800}
+nav.tabs button:hover{color:var(--text-2)}
+nav.tabs button.active{color:var(--neon);border-bottom-color:var(--neon)}
+nav.tabs button.active .ix{color:var(--neon)}
+
+/* ----- Main panes ----- */
+main{flex:1;padding:14px;max-width:1900px;width:100%;margin:0 auto}
+.pane{display:none}
+.pane.active{display:block}
+.section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
+.section-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface-elev);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap}
+.section-head h3{margin:0;font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.section-head .tagline{font-size:11px;color:var(--muted);font-weight:500}
+.section-body{padding:12px}
+.section-body.dense{padding:0}
+
+/* ----- Forms ----- */
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:10px;font-weight:800;letter-spacing:.15em;color:var(--muted);text-transform:uppercase}
+.field .help{font-size:10px;color:var(--dim);font-weight:500;letter-spacing:0;text-transform:none}
+input[type=text],input[type=number],input[type=date],input[type=tel],select,textarea{
+  appearance:none;-webkit-appearance:none;
+  background:var(--bg);color:var(--text);
+  border:1px solid var(--border);border-radius:var(--r);
+  padding:0 10px;min-height:var(--tap);
+  font-family:var(--mono);font-size:14px;font-weight:600;
+  width:100%;outline:none;transition:border-color .12s,box-shadow .12s
+}
+textarea{padding:10px;line-height:1.45;font-family:var(--mono);min-height:120px;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:var(--neon);box-shadow:0 0 0 2px var(--neon-soft)}
+select{padding-right:30px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='%238E8E93' d='M4 6l4 4 4-4'/></svg>");background-repeat:no-repeat;background-position:right 8px center}
+input::placeholder,textarea::placeholder{color:var(--dim);font-weight:500}
+
+/* ----- Buttons ----- */
+button.btn{appearance:none;border:1px solid var(--border-strong);background:var(--surface-elev);color:var(--text);font-family:var(--ui);font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:0 14px;min-height:var(--tap);border-radius:var(--r);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:filter .12s, background .12s}
+button.btn:hover{filter:brightness(1.15)}
+button.btn:active{transform:translateY(1px)}
+button.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+button.btn.pri:hover{background:#1490FF}
+button.btn.ok{background:var(--green);border-color:var(--green);color:#000}
+button.btn.warn{background:var(--orange);border-color:var(--orange);color:#000}
+button.btn.bad{background:var(--red);border-color:var(--red);color:#fff}
+button.btn.neon{background:var(--neon);border-color:var(--neon);color:#000}
+button.btn.purple{background:var(--purple);border-color:var(--purple);color:#fff}
+button.btn.ghost{background:transparent}
+button.btn.sm{font-size:10px;padding:0 8px;min-height:32px}
+button.btn.icon{padding:0;width:var(--tap);justify-content:center;font-size:14px}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ----- Grids ----- */
+.grid{display:grid;gap:10px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g6{grid-template-columns:repeat(6,minmax(0,1fr))}
+.g-auto{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+@media(max-width:900px){
+  .g3,.g4,.g6{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+  .g2,.g3,.g4,.g6{grid-template-columns:1fr}
+  .live{padding:6px 8px}
+  .kpi{min-width:108px}
+  main{padding:8px}
+  .section-head{padding:8px 10px}
+  .section-body{padding:8px}
+  nav.tabs button{padding:0 10px;font-size:11px}
+}
+
+/* ----- Tables / Line items ----- */
+.line{background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--neon);border-radius:var(--r);padding:10px;margin-bottom:10px}
+.line.specialty{border-left-color:var(--purple)}
+.line.consumable{border-left-color:var(--orange)}
+.line.equip{border-left-color:var(--yellow)}
+.line.sub{border-left-color:var(--red)}
+.line.task{border-left-color:var(--green)}
+.line-grid{display:grid;gap:8px}
+.line-grid .field{min-width:0}
+.line-foot{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border-strong);display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between}
+.line-foot .breakdown{font-family:var(--mono);font-size:11px;color:var(--text-2);letter-spacing:0}
+.line-foot .breakdown b{color:var(--neon);font-weight:700}
+.line-foot .breakdown span{margin-right:10px}
+.line-actions{display:flex;gap:4px;flex-wrap:wrap}
+
+/* ----- Sliders (efficiency) ----- */
+.slider-row{display:flex;align-items:center;gap:12px;padding:6px 0;flex-wrap:wrap}
+.slider-row label{min-width:160px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--text-2)}
+.slider-row input[type=range]{flex:1;min-width:160px;height:var(--tap);background:transparent;-webkit-appearance:none;cursor:pointer}
+.slider-row input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--border);border:1px solid var(--border-strong)}
+.slider-row input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--border);border:1px solid var(--border-strong)}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--neon);border:2px solid #000;margin-top:-9px;box-shadow:0 0 12px var(--neon-soft)}
+.slider-row input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--neon);border:2px solid #000;box-shadow:0 0 12px var(--neon-soft)}
+.slider-row .val{font-family:var(--mono);font-weight:800;color:var(--green);font-size:14px;width:54px;text-align:right}
+
+/* ----- Modal ----- */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;z-index:200;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(4px)}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r);max-width:920px;width:100%;max-height:95vh;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,229,255,.05)}
+.modal-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.modal-head h3{margin:0;font-size:14px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.modal-body{padding:14px;overflow:auto;flex:1}
+.modal-foot{padding:12px 14px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+/* ----- Toast ----- */
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--surface-elev);color:var(--text);border:1px solid var(--neon);padding:10px 18px;border-radius:var(--r);font-weight:700;font-size:13px;letter-spacing:.04em;box-shadow:0 0 28px var(--neon-soft);z-index:300;animation:fade .25s ease-out;max-width:90vw}
+@keyframes fade{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ----- Misc ----- */
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono)}
+.txt-right{text-align:right}
+.center{text-align:center}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;background:var(--neon-soft);color:var(--neon);border:1px solid var(--neon)}
+.pill.warn{background:rgba(255,214,10,.12);border-color:var(--yellow);color:var(--yellow)}
+.pill.bad{background:rgba(255,69,58,.12);border-color:var(--red);color:var(--red)}
+.pill.ok{background:rgba(50,215,75,.12);border-color:var(--green);color:var(--green)}
+.report-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;font-family:var(--mono);font-size:12.5px;line-height:1.55;white-space:pre-wrap;color:var(--text-2);max-height:62vh;overflow:auto}
+.empty{padding:40px 16px;text-align:center;color:var(--muted);font-size:13px}
+.empty b{display:block;color:var(--text-2);font-size:15px;letter-spacing:.06em;margin-bottom:6px;font-weight:800;text-transform:uppercase}
+hr.div{border:0;border-top:1px solid var(--border);margin:14px 0}
+
+/* ----- Sketchpad ----- */
+.sketch-wrap{display:grid;grid-template-columns:240px 1fr 240px;gap:8px;height:calc(100vh - 220px);min-height:520px}
+@media(max-width:1100px){.sketch-wrap{grid-template-columns:200px 1fr}}
+@media(max-width:760px){.sketch-wrap{grid-template-columns:1fr;height:auto}}
+.tool-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:8px;overflow:auto;max-height:100%}
+.tool-panel h4{margin:6px 0 4px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.tool-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.tool-btn{flex:1;min-width:84px;background:var(--surface-elev);border:1px solid var(--border);color:var(--text-2);border-radius:4px;padding:8px 6px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;min-height:38px}
+.tool-btn.active{background:var(--neon);color:#000;border-color:var(--neon)}
+.canvas-wrap{background:#0F0F11;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;position:relative;min-height:520px}
+#sketchCanvas{display:block;width:100%;height:100%;touch-action:none;background:#0F0F11;cursor:crosshair}
+
+/* ----- Gantt ----- */
+.gantt{font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:8px;overflow-x:auto}
+.gantt-row{display:flex;align-items:center;border-bottom:1px solid var(--border);min-height:32px}
+.gantt-row:last-child{border-bottom:0}
+.gantt-name{width:200px;flex-shrink:0;padding:4px 8px;color:var(--text-2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt-bar{flex:1;position:relative;height:24px}
+.bar{position:absolute;top:4px;height:16px;background:var(--surface-elev);border:1px solid var(--border-strong);border-radius:3px;overflow:hidden}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;background:var(--blue)}
+.bar.done .fill{background:var(--green)}
+.bar .lbl{position:absolute;left:6px;top:0;bottom:0;display:flex;align-items:center;font-size:10px;color:#fff;font-weight:700;text-shadow:0 0 4px #000;pointer-events:none}
+
+/* ----- Number badge ----- */
+.num-pill{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-weight:800;font-size:11px;padding:3px 8px;border-radius:99px;background:var(--surface-elev);border:1px solid var(--border-strong);color:var(--text-2)}
+.num-pill .n{color:var(--neon)}
+
+/* ----- Print / report ----- */
+@media print{
+  header.topbar,nav.tabs,.live,.modal-bg,button{display:none!important}
+  .pane{display:block!important;page-break-after:always}
+  body,html{background:#fff;color:#000}
+  .section{border-color:#bbb;page-break-inside:avoid}
+  .section-head{background:#eee;color:#000;border-color:#bbb}
+  .report-box{color:#000;background:#fff;border-color:#bbb}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="logo">
+      <div class="ring"></div>
+      <div class="brand">TINGLE ESTIMATOR<small>Pipe • Offline • PC + Android</small></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn sm" id="btnNew" title="Start a fresh estimate">+ NEW</button>
+      <button class="btn sm pri" id="btnSave">SAVE</button>
+      <button class="btn sm" id="btnLoad">LOAD</button>
+      <button class="btn sm" id="btnExportJSON">EXPORT</button>
+      <button class="btn sm" id="btnImportJSON">IMPORT</button>
+      <button class="btn sm ghost" id="btnHelp">?</button>
+    </div>
+  </header>
+
+  <div class="live" id="liveBar">
+    <div class="kpi quote"><span class="lbl">Live Quote</span><span class="val" id="kQuote">$0.00</span></div>
+    <div class="kpi mh"><span class="lbl">Adj Man-Hrs</span><span class="val" id="kMH">0.0</span></div>
+    <div class="kpi cpm"><span class="lbl">Cost / MH</span><span class="val" id="kCPM">$0.00</span></div>
+    <div class="kpi di"><span class="lbl">Total DI</span><span class="val" id="kDI">0.0</span></div>
+    <div class="kpi sched"><span class="lbl">Schedule</span><span class="val" id="kSched">0d</span></div>
+    <div class="kpi peak"><span class="lbl">Peak Crew</span><span class="val" id="kPeak">0</span></div>
+    <div class="kpi"><span class="lbl">Efficiency</span><span class="val" id="kEff" style="color:#fff">0%</span></div>
+  </div>
+
+  <nav class="tabs" id="tabNav"></nav>
+  <main id="mainPanes"></main>
+</div>
+
+<!-- Modal stack -->
+<div class="modal-bg" id="modalRoot"><div class="modal" id="modal">
+  <div class="modal-head"><h3 id="modalTitle">—</h3><button class="btn sm ghost" data-close-modal>✕</button></div>
+  <div class="modal-body" id="modalBody"></div>
+  <div class="modal-foot" id="modalFoot"></div>
+</div></div>
+
+<!-- Hidden file input for JSON import -->
+<input type="file" id="fileImport" accept=".json,application/json" style="display:none" />
+
+<script>
+/* =========================================================================
+ *  SECTION 1 — MASTER DATA TABLES
+ *  Sources merged: estimator_v2.py + Estimation-main/lib/data.js + J.S.Page
+ *  PIPE_DB columns:
+ *   [0] lay_lf      [1] erect_lf  [2] fit_ea     [3] weld_ea
+ *   [4] handle_ea   [5] hanger_ea [6] wt_per_ft  [7] cut_hr_ea
+ *   [8] paint_lf    [9] wheel_cut [10] di_per_in [11] od_in
+ *   [12] di_per_weld
+ *  Hardcoded as plain arrays for O(1) lookup. Order preserves NPS asc.
+ * ===================================================================== */
+const PIPE_DB = {
+  "1/4":   [0.05,0.06,0.20,0.30,0.10,0.50,0.42,0.005,0.05,0.10,1.0,0.540,0.25],
+  "3/8":   [0.05,0.07,0.25,0.35,0.12,0.50,0.56,0.008,0.08,0.10,1.5,0.675,0.375],
+  "1/2":   [0.06,0.08,0.30,0.40,0.15,0.50,0.85,0.016,0.10,0.10,2.0,0.840,0.5],
+  "3/4":   [0.08,0.10,0.35,0.45,0.18,0.50,1.13,0.028,0.15,0.15,3.0,1.050,0.75],
+  "1":     [0.10,0.12,0.40,0.50,0.20,0.75,1.68,0.045,0.20,0.15,4.0,1.315,1.0],
+  "1-1/4": [0.12,0.15,0.50,0.65,0.25,0.75,2.27,0.070,0.25,0.18,5.0,1.660,1.25],
+  "1-1/2": [0.14,0.18,0.60,0.80,0.30,0.75,2.72,0.106,0.30,0.20,6.0,1.900,1.5],
+  "2":     [0.15,0.22,0.75,1.00,0.35,1.00,3.65,0.170,0.40,0.25,8.0,2.375,2.0],
+  "2-1/2": [0.18,0.26,0.90,1.25,0.45,1.10,5.79,0.250,0.50,0.30,10.0,2.875,2.5],
+  "3":     [0.20,0.30,1.05,1.50,0.55,1.25,7.58,0.380,0.60,0.40,12.0,3.500,3.0],
+  "4":     [0.22,0.38,1.20,2.00,0.70,1.50,10.79,0.660,0.80,0.60,16.0,4.500,4.0],
+  "5":     [0.25,0.45,1.50,2.50,0.90,1.75,14.62,1.040,1.10,0.80,20.0,5.563,5.0],
+  "6":     [0.28,0.55,1.80,3.00,1.10,2.00,18.97,1.500,1.50,1.00,25.0,6.625,6.0],
+  "8":     [0.35,0.70,2.40,4.20,1.50,2.50,28.55,2.600,2.20,1.50,35.0,8.625,8.0],
+  "10":    [0.42,0.85,3.00,5.20,2.00,3.00,40.48,4.100,3.20,2.00,45.0,10.750,10.0],
+  "12":    [0.50,1.00,3.50,6.00,2.50,3.50,49.56,5.800,4.50,3.00,55.0,12.750,12.0],
+  "14":    [0.60,1.20,4.00,7.00,3.00,4.00,54.57,7.000,5.50,4.00,65.0,14.000,14.0],
+  "16":    [0.68,1.40,4.75,8.25,3.50,4.50,62.58,9.200,6.75,5.00,75.0,16.000,16.0],
+  "18":    [0.75,1.60,5.50,9.50,4.00,5.00,70.50,11.50,8.00,6.00,85.0,18.000,18.0],
+  "20":    [0.85,1.85,6.50,11.50,5.00,6.00,78.60,14.40,10.00,8.00,100.0,20.000,20.0],
+  "22":    [0.90,2.00,7.00,12.50,5.50,6.25,86.61,17.20,11.00,9.00,108.0,22.000,22.0],
+  "24":    [0.95,2.20,7.50,14.00,6.00,6.50,94.62,20.80,12.00,10.00,115.0,24.000,24.0],
+  "26":    [1.05,2.45,8.50,15.50,7.00,7.25,102.65,24.50,13.50,12.00,128.0,26.000,26.0],
+  "28":    [1.10,2.60,9.10,16.50,7.50,7.75,110.66,27.50,14.50,13.00,135.0,28.000,28.0],
+  "30":    [1.20,2.85,10.00,18.00,8.00,8.25,118.65,30.50,18.00,15.00,145.0,30.000,30.0],
+  "32":    [1.30,3.05,10.80,19.50,8.50,9.00,126.66,34.00,20.00,16.00,155.0,32.000,32.0],
+  "34":    [1.40,3.25,11.50,21.00,9.00,9.50,134.67,37.50,22.00,18.00,165.0,34.000,34.0],
+  "36":    [1.50,3.50,12.50,22.00,10.00,10.00,142.68,48.00,25.00,20.00,180.0,36.000,36.0],
+  "42":    [1.78,4.10,15.00,28.00,11.50,11.50,167.00,62.00,30.00,24.00,212.0,42.000,42.0],
+  "48":    [2.05,4.70,17.50,34.00,13.50,13.00,191.50,78.00,36.00,28.00,245.0,48.000,48.0]
+};
+const NPS_LIST = Object.keys(PIPE_DB);
+
+/* Schedule wall-thickness multipliers — calibrated against PDF Section 1 tables
+   (heavier wall = quadratic weld time scaling). XXH derived from .500"+ wall. */
+const SCHEDULE_MULT = {
+  "Sch 5":0.55, "Sch 10":0.65, "Sch 20":0.80, "Sch 30":0.90,
+  "Sch 40":1.00, "Sch 60":1.30, "Sch 80":1.65, "Sch 100":2.00,
+  "Sch 120":2.30, "Sch 140":2.55, "Sch 160":2.80,
+  "STD":1.00, "XH":1.65, "XXH":3.50
+};
+const WELD_TYPE_MULT = {
+  "Stick (SMAW)":1.00,
+  "TIG (GTAW)":1.45,
+  "TIG Root + Stick Fill":1.30,
+  "TIG Root + FCAW Fill":1.15,
+  "MIG (GMAW)":0.75,
+  "Flux-Core (FCAW)":0.85,
+  "Sub-Arc (SAW) Auto":0.55,
+  "Orbital (Auto)":0.40,
+  "Hand Tools (Wrench)":0.20,
+  "Machine Tools (Bender)":0.40,
+  "Soldered / Brazed":0.50,
+  "Solvent Weld (PVC/CPVC)":0.30,
+  "Electrofusion (HDPE)":0.45,
+  "Butt-Fusion (HDPE)":0.65,
+  "Mechanical Coupling":0.25,
+  "None":0.0
+};
+const CONNECTION_FACTORS = {
+  "Butt Weld":     {fit:1.00,join:1.00},
+  "Socket Weld":   {fit:0.80,join:0.65},
+  "Screw Pipe":    {fit:1.10,join:0.40},
+  "Tubing (Comp)": {fit:0.40,join:0.20},
+  "Tubing (Bent)": {fit:0.50,join:0.60},
+  "Flanged":       {fit:1.10,join:0.85},
+  "Grooved (Vic)": {fit:0.70,join:0.45},
+  "Solvent (PVC)": {fit:0.60,join:0.35},
+  "Press-Fit":     {fit:0.55,join:0.30},
+  "Compression":   {fit:0.50,join:0.30}
+};
+/* Material additive factor — multiplies labor only, not material cost.
+   Based on relative difficulty per Section 9 of manual + industry surveys. */
+const MATERIAL_FACTORS = {
+  "Carbon Steel":1.00,
+  "Carbon (Low Temp A333)":1.08,
+  "Cr-Mo 1-1/4%":1.15,
+  "Cr-Mo 2-1/4%":1.20,
+  "Cr-Mo 5%":1.30,
+  "Cr-Mo 9%":1.40,
+  "Stainless 304/316":1.35,
+  "Stainless 321/347":1.45,
+  "Duplex 2205":1.55,
+  "Super Duplex 2507":1.65,
+  "Inconel 625/825":1.75,
+  "Hastelloy C-276":1.85,
+  "Monel 400":1.55,
+  "Titanium Gr 2":1.80,
+  "Aluminum 6061":0.85,
+  "Copper / Brass":0.75,
+  "PVC / CPVC":0.45,
+  "HDPE Fused":0.55,
+  "Galvanized":1.10,
+  "FRP / GRP":0.95,
+  "Lined Pipe (Rubber/Glass)":1.45
+};
+const ELEVATION_MULT  = {"Ground":1.00,"Waist High":1.00,"Overhead":1.15,"High Elev (>20ft)":1.35,"Extreme (>40ft)":1.55,"Cherry-Picker Required":1.65};
+const LAYOUT_MULT     = {"Simple":1.00,"Average":1.10,"Complex":1.25,"Very Complex":1.45,"Spaghetti":1.70};
+const CONGESTION_MULT = {"Open Area":1.00,"Moderate":1.10,"Congested":1.25,"Severe":1.40,"Live-Plant":1.55};
+const DIFFICULTY_MULT = {"Easy":1.00,"Moderate":1.10,"Difficult":1.25,"Extreme":1.50,"Nuclear/Pharma":1.75};
+const SHIFT_MULT      = {"Day Shift":1.00,"Swing Shift":1.10,"Graveyard":1.20,"7x10 OT":1.15,"6x12 OT":1.30};
+/* Fit-up multiplier: each fitting represents N weld joints */
+const MULTI_MULTIPLIERS = {
+  "Bare Pipe (LF)":0,
+  "90° LR Elbow":2,
+  "90° SR Elbow":2,
+  "45° Elbow":2,
+  "Straight Tee":3,
+  "Reducing Tee":3,
+  "Lateral Tee":3,
+  "Cross":4,
+  "Concentric Reducer":2,
+  "Eccentric Reducer":2,
+  "Swage Nipple":2,
+  "Weld Neck Flange":1,
+  "Slip-On Flange":2,
+  "Blind Flange":0,
+  "Threaded Flange":0,
+  "Orifice Flange":1,
+  "Lap Joint Flange + Stub End":2,
+  "Socket Weld Flange":1,
+  "Gate Valve":2,
+  "Globe Valve":2,
+  "Check Valve":2,
+  "Ball Valve":2,
+  "Butterfly Valve":2,
+  "Plug Valve":2,
+  "Needle Valve":2,
+  "Knife Gate Valve":2,
+  "Control Valve":2,
+  "Relief / Safety Valve":1,
+  "Pressure Regulator":2,
+  "Steam Trap":2,
+  "Strainer (Y/T)":2,
+  "Flow Meter":2,
+  "Cap":1,
+  "Plug":0,
+  "Coupling":2,
+  "Half Coupling":1,
+  "Union":2,
+  "Sockolet/Threadolet":1,
+  "Weldolet":1,
+  "Sweepolet":1,
+  "Nipolet":1
+};
+const HANGER_FACTORS = {
+  "Clevis (Standard)":1.0,
+  "U-Bolt / Guide":0.8,
+  "Pipe Clamp (light)":0.7,
+  "Riser Clamp":0.9,
+  "Roller Support":1.3,
+  "Roller Stand (heavy)":1.6,
+  "Trapeze (Strut)":1.6,
+  "Saddle w/ Shoe":2.0,
+  "Spring Support (Variable)":2.5,
+  "Constant Support":3.0,
+  "Snubber / Sway Strut":2.8,
+  "Welded Dummy Leg":3.0,
+  "Angle Iron w/ Baseplate":4.0,
+  "Pipe Rack Beam Attach.":2.2,
+  "Custom Fabricated":4.5,
+  "None":0.0
+};
+const SPEC_OPS_DB = {
+  "Scaffolding (per 100 SF)":3.50,
+  "Scaffolding - 2-Story":7.00,
+  "Trenching (CY)":1.20,
+  "Excavation - Soft Soil (CY)":0.80,
+  "Excavation - Hard Soil (CY)":1.80,
+  "Excavation - Rock (CY)":4.50,
+  "Backfilling (CY)":0.45,
+  "Shoring & Bracing (LF)":0.95,
+  "Core Drilling (Ea)":1.00,
+  "Concrete Sleeve / Penetration (Ea)":1.40,
+  "Roof Penetration & Flashing (Ea)":2.50,
+  "Hydrotest (LF)":0.05,
+  "Hydrotest - High Pressure (LF)":0.10,
+  "Pneumatic Test (LF)":0.07,
+  "Painting (LF)":0.20,
+  "Sandblasting (SF)":0.05,
+  "Pipe Coating - Field (LF)":0.30,
+  "Insulation (LF)":0.25,
+  "Insulation - Cryogenic (LF)":0.55,
+  "Insulation Jacket (LF)":0.12,
+  "X-Ray Wait Time (Hr)":1.00,
+  "Demolition/Removal (LF)":0.35,
+  "Demolition - Heavy Wall (LF)":0.75,
+  "Confined Space Entry (Hr)":1.50,
+  "Stress Relief - Local (Joint)":1.20,
+  "Stress Relief - Furnace (Spool)":0.40,
+  "Preheat - Field (Joint)":0.75,
+  "Cleaning / Flushing (LF)":0.04,
+  "Chemical Cleaning (LF)":0.12,
+  "Tie-In Hot Tap (Ea)":8.00,
+  "Cold Cut Tie-In (Ea)":4.50,
+  "Steam Trace (LF)":0.18,
+  "Heat Trace - Electric (LF)":0.22,
+  "Pipe Marking / Labeling (LF)":0.02,
+  "PWHT Heat Treat (Joint)":1.10,
+  "PMI Test (Ea)":0.25,
+  "Hardness Test (Ea)":0.20,
+  "Helium Leak Test (Joint)":0.40
+};
+const EQUIP_DB = {
+  "400A Diesel Welder":85.00,
+  "250A Gas Welder":65.00,
+  "TIG Welder (250A)":95.00,
+  "TIG Welder (400A AC/DC)":135.00,
+  "Multi-Op Welder (4 Operator)":225.00,
+  "19ft Scissor Lift":55.00,
+  "26ft Scissor Lift":75.00,
+  "32ft Scissor Lift":110.00,
+  "45ft Articulating Boom":120.00,
+  "65ft Straight Boom":160.00,
+  "85ft Straight Boom":220.00,
+  "Telehandler (10K)":140.00,
+  "Telehandler (15K)":185.00,
+  "Forklift (5K Indoor)":85.00,
+  "Carry Deck Crane (15-ton)":190.00,
+  "RT Crane (40-ton)":380.00,
+  "RT Crane (90-ton)":680.00,
+  "Boom Truck (10-ton)":215.00,
+  "Pickup Truck (1-ton)":55.00,
+  "Box Truck":85.00,
+  "Job Trailer (24ft)":25.00,
+  "Storage Container (20ft)":18.00,
+  "Storage Container (40ft)":28.00,
+  "Gang Box":10.00,
+  "Pipe Threader (300)":35.00,
+  "Pipe Threader (535)":55.00,
+  "Air Compressor (185 CFM)":75.00,
+  "Air Compressor (375 CFM)":145.00,
+  "Air Compressor (1100 CFM)":345.00,
+  "Bandsaw (Portable)":18.00,
+  "Beveling Machine":65.00,
+  "Cold Cutter (4-12in)":95.00,
+  "Cold Cutter (12-24in)":165.00,
+  "Hydrotest Pump (Electric)":45.00,
+  "Hydrotest Pump (High-Pressure)":125.00,
+  "Plasma Cutter":55.00,
+  "Light Plant (Towable)":65.00,
+  "Generator (25kW)":75.00,
+  "Generator (60kW)":155.00,
+  "Diesel Heater":45.00,
+  "Fuel Truck Service (Daily)":40.00,
+  "Vacuum Truck (Daily)":325.00
+};
+/* ASME dimensional reference — preserved from estimator_v2 + extended */
+const DIM_DB = {
+  "Tubing Fittings (Compression)": {
+    "Insertion & Make-Up": {
+      "1/4\"":{Insertion:"0.60\"","Make-Up":"0.60\"","Nut Hex":"9/16\""},
+      "3/8\"":{Insertion:"0.66\"","Make-Up":"0.66\"","Nut Hex":"11/16\""},
+      "1/2\"":{Insertion:"0.90\"","Make-Up":"0.90\"","Nut Hex":"7/8\""},
+      "3/4\"":{Insertion:"0.96\"","Make-Up":"0.96\"","Nut Hex":"1-1/8\""},
+      "1\"":{Insertion:"1.23\"","Make-Up":"1.23\"","Nut Hex":"1-1/2\""}
+    },
+    "Union":{"1/4\"":{"End-to-End":"1.61\""},"3/8\"":{"End-to-End":"1.77\""},"1/2\"":{"End-to-End":"2.02\""},"3/4\"":{"End-to-End":"2.11\""},"1\"":{"End-to-End":"2.58\""}},
+    "90° Union Elbow":{"1/4\"":{"C-to-E":"1.06\""},"3/8\"":{"C-to-E":"1.20\""},"1/2\"":{"C-to-E":"1.42\""},"3/4\"":{"C-to-E":"1.57\""},"1\"":{"C-to-E":"1.93\""}}
+  },
+  "Flange Bolting (ASME B16.5)":{
+    "150# Stud Bolts (RF)":{
+      "1/2\"":{Bolts:"4 ea",Size:"1/2\" x 2-1/4\""},"3/4\"":{Bolts:"4 ea",Size:"1/2\" x 2-1/2\""},
+      "1\"":{Bolts:"4 ea",Size:"1/2\" x 2-1/2\""},"1-1/2\"":{Bolts:"4 ea",Size:"1/2\" x 2-3/4\""},
+      "2\"":{Bolts:"4 ea",Size:"5/8\" x 2-3/4\""},"3\"":{Bolts:"4 ea",Size:"5/8\" x 3\""},
+      "4\"":{Bolts:"8 ea",Size:"5/8\" x 3\""},"6\"":{Bolts:"8 ea",Size:"3/4\" x 3-1/2\""},
+      "8\"":{Bolts:"8 ea",Size:"3/4\" x 3-1/2\""},"10\"":{Bolts:"12 ea",Size:"7/8\" x 4\""},
+      "12\"":{Bolts:"12 ea",Size:"7/8\" x 4\""},"14\"":{Bolts:"12 ea",Size:"1\" x 4-1/4\""},
+      "16\"":{Bolts:"16 ea",Size:"1\" x 4-1/2\""},"18\"":{Bolts:"16 ea",Size:"1-1/8\" x 4-3/4\""},
+      "20\"":{Bolts:"20 ea",Size:"1-1/8\" x 5\""},"24\"":{Bolts:"20 ea",Size:"1-1/4\" x 5-1/2\""},
+      "30\"":{Bolts:"28 ea",Size:"1-1/4\" x 6-1/2\""},"36\"":{Bolts:"32 ea",Size:"1-1/2\" x 7-1/2\""}
+    },
+    "300# Stud Bolts (RF)":{
+      "1/2\"":{Bolts:"4 ea",Size:"1/2\" x 2-1/2\""},"3/4\"":{Bolts:"4 ea",Size:"5/8\" x 2-3/4\""},
+      "1\"":{Bolts:"4 ea",Size:"5/8\" x 3\""},"2\"":{Bolts:"8 ea",Size:"5/8\" x 3-1/4\""},
+      "3\"":{Bolts:"8 ea",Size:"3/4\" x 3-3/4\""},"4\"":{Bolts:"8 ea",Size:"3/4\" x 4\""},
+      "6\"":{Bolts:"12 ea",Size:"3/4\" x 4-1/4\""},"8\"":{Bolts:"12 ea",Size:"7/8\" x 4-3/4\""},
+      "10\"":{Bolts:"16 ea",Size:"1\" x 5-1/2\""},"12\"":{Bolts:"16 ea",Size:"1-1/8\" x 6\""},
+      "14\"":{Bolts:"20 ea",Size:"1-1/8\" x 6-1/4\""},"16\"":{Bolts:"20 ea",Size:"1-1/4\" x 6-3/4\""},
+      "20\"":{Bolts:"24 ea",Size:"1-1/4\" x 7-1/4\""},"24\"":{Bolts:"24 ea",Size:"1-1/2\" x 8-1/2\""}
+    },
+    "600# Stud Bolts (RF)":{
+      "1\"":{Bolts:"4 ea",Size:"5/8\" x 3-1/2\""},"2\"":{Bolts:"8 ea",Size:"5/8\" x 4\""},
+      "3\"":{Bolts:"8 ea",Size:"3/4\" x 4-1/2\""},"4\"":{Bolts:"8 ea",Size:"7/8\" x 5\""},
+      "6\"":{Bolts:"12 ea",Size:"1\" x 5-3/4\""},"8\"":{Bolts:"12 ea",Size:"1-1/8\" x 6-1/2\""},
+      "10\"":{Bolts:"16 ea",Size:"1-1/4\" x 7-1/4\""},"12\"":{Bolts:"20 ea",Size:"1-1/4\" x 7-3/4\""}
+    },
+    "900# Stud Bolts (RTJ)":{
+      "2\"":{Bolts:"8 ea",Size:"7/8\" x 5-1/2\""},"3\"":{Bolts:"8 ea",Size:"7/8\" x 6\""},
+      "4\"":{Bolts:"8 ea",Size:"1-1/8\" x 7\""},"6\"":{Bolts:"12 ea",Size:"1-1/8\" x 7-1/2\""},
+      "8\"":{Bolts:"12 ea",Size:"1-3/8\" x 9\""},"10\"":{Bolts:"16 ea",Size:"1-3/8\" x 10\""}
+    },
+    "1500# Stud Bolts (RTJ)":{
+      "2\"":{Bolts:"8 ea",Size:"1\" x 6\""},"3\"":{Bolts:"8 ea",Size:"1-1/8\" x 7-1/4\""},
+      "4\"":{Bolts:"8 ea",Size:"1-1/4\" x 8\""},"6\"":{Bolts:"12 ea",Size:"1-3/8\" x 9\""}
+    }
+  },
+  "Flange Dimensions (ASME B16.5)":{
+    "150# Weld Neck (Length)":{
+      "1/2\"":{L:"1.88\""},"3/4\"":{L:"2.06\""},"1\"":{L:"2.19\""},"1-1/2\"":{L:"2.44\""},
+      "2\"":{L:"2.50\""},"3\"":{L:"2.75\""},"4\"":{L:"3.00\""},"6\"":{L:"3.50\""},
+      "8\"":{L:"4.00\""},"10\"":{L:"4.00\""},"12\"":{L:"4.50\""},"14\"":{L:"5.00\""},
+      "16\"":{L:"5.00\""},"18\"":{L:"5.50\""},"20\"":{L:"5.69\""},"24\"":{L:"6.00\""}
+    },
+    "150# Blind (Thickness)":{
+      "1/2\"":{T:"0.44\""},"1\"":{T:"0.56\""},"2\"":{T:"0.75\""},"3\"":{T:"0.94\""},
+      "4\"":{T:"0.94\""},"6\"":{T:"1.00\""},"8\"":{T:"1.12\""},"10\"":{T:"1.19\""},
+      "12\"":{T:"1.25\""},"16\"":{T:"1.44\""},"20\"":{T:"1.69\""},"24\"":{T:"1.88\""}
+    },
+    "300# Weld Neck (Length)":{
+      "2\"":{L:"2.62\""},"3\"":{L:"2.88\""},"4\"":{L:"3.12\""},"6\"":{L:"3.88\""},
+      "8\"":{L:"4.38\""},"10\"":{L:"4.62\""},"12\"":{L:"5.12\""},"16\"":{L:"5.88\""},
+      "20\"":{L:"6.50\""},"24\"":{L:"7.25\""}
+    }
+  },
+  "Valve Face-to-Face (ASME B16.10)":{
+    "150# Flanged Gate Valve":{"2\"":{"F-to-F":"7.00\""},"3\"":{"F-to-F":"8.00\""},"4\"":{"F-to-F":"9.00\""},"6\"":{"F-to-F":"10.50\""},"8\"":{"F-to-F":"11.50\""},"10\"":{"F-to-F":"13.00\""},"12\"":{"F-to-F":"14.00\""},"14\"":{"F-to-F":"15.00\""},"16\"":{"F-to-F":"16.00\""},"20\"":{"F-to-F":"18.00\""},"24\"":{"F-to-F":"20.00\""}},
+    "150# Flanged Globe Valve":{"2\"":{"F-to-F":"8.00\""},"3\"":{"F-to-F":"9.50\""},"4\"":{"F-to-F":"11.50\""},"6\"":{"F-to-F":"16.00\""},"8\"":{"F-to-F":"19.50\""},"10\"":{"F-to-F":"24.50\""},"12\"":{"F-to-F":"27.50\""}},
+    "150# Flanged Swing Check":{"2\"":{"F-to-F":"8.00\""},"3\"":{"F-to-F":"9.50\""},"4\"":{"F-to-F":"11.50\""},"6\"":{"F-to-F":"14.00\""},"8\"":{"F-to-F":"19.50\""},"10\"":{"F-to-F":"24.50\""},"12\"":{"F-to-F":"27.50\""}},
+    "150# Ball Valve (Full Port)":{"2\"":{"F-to-F":"7.00\""},"3\"":{"F-to-F":"8.00\""},"4\"":{"F-to-F":"9.00\""},"6\"":{"F-to-F":"15.50\""},"8\"":{"F-to-F":"18.00\""}},
+    "150# Butterfly (Lug)":{"2\"":{"F-to-F":"1.75\""},"3\"":{"F-to-F":"1.88\""},"4\"":{"F-to-F":"2.06\""},"6\"":{"F-to-F":"2.19\""},"8\"":{"F-to-F":"2.38\""},"10\"":{"F-to-F":"2.69\""},"12\"":{"F-to-F":"3.06\""}},
+    "300# Flanged Gate Valve":{"2\"":{"F-to-F":"8.50\""},"3\"":{"F-to-F":"11.12\""},"4\"":{"F-to-F":"12.00\""},"6\"":{"F-to-F":"15.88\""},"8\"":{"F-to-F":"16.50\""},"10\"":{"F-to-F":"18.00\""},"12\"":{"F-to-F":"19.75\""}}
+  },
+  "ASME B16.9 Butt Weld Fittings":{
+    "90° LR Elbow (C-to-E)":{"1/2\"":{C:"1.50\""},"3/4\"":{C:"1.50\""},"1\"":{C:"1.50\""},"1-1/2\"":{C:"2.25\""},"2\"":{C:"3.00\""},"3\"":{C:"4.50\""},"4\"":{C:"6.00\""},"6\"":{C:"9.00\""},"8\"":{C:"12.00\""},"10\"":{C:"15.00\""},"12\"":{C:"18.00\""},"14\"":{C:"21.00\""},"16\"":{C:"24.00\""},"18\"":{C:"27.00\""},"20\"":{C:"30.00\""},"24\"":{C:"36.00\""}},
+    "45° Elbow (C-to-E)":{"1/2\"":{C:"0.62\""},"3/4\"":{C:"0.75\""},"1\"":{C:"0.88\""},"1-1/2\"":{C:"1.12\""},"2\"":{C:"1.38\""},"3\"":{C:"2.00\""},"4\"":{C:"2.50\""},"6\"":{C:"3.75\""},"8\"":{C:"5.00\""},"10\"":{C:"6.25\""},"12\"":{C:"7.50\""},"16\"":{C:"10.00\""},"20\"":{C:"12.50\""},"24\"":{C:"15.00\""}},
+    "Straight Tee (C-to-E)":{"1/2\"":{C:"1.00\""},"3/4\"":{C:"1.12\""},"1\"":{C:"1.50\""},"1-1/2\"":{C:"2.25\""},"2\"":{C:"2.50\""},"3\"":{C:"3.38\""},"4\"":{C:"4.12\""},"6\"":{C:"5.62\""},"8\"":{C:"7.00\""},"10\"":{C:"8.50\""},"12\"":{C:"10.00\""},"16\"":{C:"12.00\""},"20\"":{C:"15.00\""},"24\"":{C:"17.00\""}},
+    "Concentric Reducer (Length)":{"1\" x 1/2\"":{L:"2.00\""},"2\" x 1\"":{L:"3.00\""},"3\" x 2\"":{L:"3.50\""},"4\" x 2\"":{L:"4.00\""},"4\" x 3\"":{L:"4.00\""},"6\" x 4\"":{L:"5.50\""},"8\" x 6\"":{L:"6.00\""},"10\" x 8\"":{L:"7.00\""},"12\" x 10\"":{L:"8.00\""},"16\" x 12\"":{L:"14.00\""},"20\" x 16\"":{L:"20.00\""},"24\" x 20\"":{L:"20.00\""}},
+    "End Cap (Length)":{"1/2\"":{L:"1.00\""},"1\"":{L:"1.50\""},"2\"":{L:"1.50\""},"3\"":{L:"2.00\""},"4\"":{L:"2.50\""},"6\"":{L:"3.50\""},"8\"":{L:"4.00\""},"10\"":{L:"5.00\""},"12\"":{L:"6.00\""},"16\"":{L:"7.50\""},"20\"":{L:"9.00\""},"24\"":{L:"10.50\""}}
+  },
+  "150# Threaded / Screw (Malleable)":{
+    "NPT Engagement":{"1/4\"":{Depth:"0.40\""},"1/2\"":{Depth:"0.53\""},"3/4\"":{Depth:"0.55\""},"1\"":{Depth:"0.68\""},"1-1/2\"":{Depth:"0.68\""},"2\"":{Depth:"0.76\""}},
+    "90° Elbow / Tee (C-to-E)":{"1/4\"":{C:"0.81\""},"1/2\"":{C:"1.12\""},"3/4\"":{C:"1.31\""},"1\"":{C:"1.50\""},"1-1/2\"":{C:"1.94\""},"2\"":{C:"2.25\""}},
+    "45° Elbow (C-to-E)":{"1/4\"":{C:"0.73\""},"1/2\"":{C:"0.88\""},"3/4\"":{C:"0.98\""},"1\"":{C:"1.12\""},"1-1/2\"":{C:"1.43\""},"2\"":{C:"1.68\""}},
+    "Union (Overall Length)":{"1/4\"":{L:"1.44\""},"1/2\"":{L:"1.72\""},"3/4\"":{L:"1.94\""},"1\"":{L:"2.06\""},"1-1/2\"":{L:"2.44\""},"2\"":{L:"2.75\""}}
+  },
+  "3000# Socket Weld (ASME B16.11)":{
+    "Cup Depth (Socket)":{"1/4\"":{Depth:"0.38\""},"1/2\"":{Depth:"0.38\""},"3/4\"":{Depth:"0.50\""},"1\"":{Depth:"0.50\""},"1-1/2\"":{Depth:"0.50\""},"2\"":{Depth:"0.62\""}},
+    "90° Elbow (C-to-Bottom)":{"1/4\"":{"C-B":"0.44\""},"1/2\"":{"C-B":"0.62\""},"3/4\"":{"C-B":"0.75\""},"1\"":{"C-B":"0.88\""},"1-1/2\"":{"C-B":"1.25\""},"2\"":{"C-B":"1.68\""}},
+    "Coupling (End-to-End)":{"1/4\"":{L:"1.00\""},"1/2\"":{L:"1.12\""},"3/4\"":{L:"1.38\""},"1\"":{L:"1.50\""},"1-1/2\"":{L:"1.88\""},"2\"":{L:"2.38\""}}
+  },
+  "Pipe Dimensions (OD, Wall & Weight)":{
+    "Sch 40 (STD)":{"1/2\"":{OD:"0.840\"",Wall:"0.109\"","Wt(lbs/ft)":"0.85"},"1\"":{OD:"1.315\"",Wall:"0.133\"","Wt(lbs/ft)":"1.68"},"2\"":{OD:"2.375\"",Wall:"0.154\"","Wt(lbs/ft)":"3.65"},"3\"":{OD:"3.500\"",Wall:"0.216\"","Wt(lbs/ft)":"7.58"},"4\"":{OD:"4.500\"",Wall:"0.237\"","Wt(lbs/ft)":"10.79"},"6\"":{OD:"6.625\"",Wall:"0.280\"","Wt(lbs/ft)":"18.97"},"8\"":{OD:"8.625\"",Wall:"0.322\"","Wt(lbs/ft)":"28.55"},"10\"":{OD:"10.750\"",Wall:"0.365\"","Wt(lbs/ft)":"40.48"},"12\"":{OD:"12.750\"",Wall:"0.406\"","Wt(lbs/ft)":"49.56"},"16\"":{OD:"16.000\"",Wall:"0.500\"","Wt(lbs/ft)":"82.77"},"20\"":{OD:"20.000\"",Wall:"0.594\"","Wt(lbs/ft)":"123.11"},"24\"":{OD:"24.000\"",Wall:"0.688\"","Wt(lbs/ft)":"171.29"}},
+    "Sch 80 (XH)":{"1/2\"":{OD:"0.840\"",Wall:"0.147\"","Wt(lbs/ft)":"1.09"},"1\"":{OD:"1.315\"",Wall:"0.179\"","Wt(lbs/ft)":"2.17"},"2\"":{OD:"2.375\"",Wall:"0.218\"","Wt(lbs/ft)":"5.02"},"3\"":{OD:"3.500\"",Wall:"0.300\"","Wt(lbs/ft)":"10.25"},"4\"":{OD:"4.500\"",Wall:"0.337\"","Wt(lbs/ft)":"14.98"},"6\"":{OD:"6.625\"",Wall:"0.432\"","Wt(lbs/ft)":"28.57"},"8\"":{OD:"8.625\"",Wall:"0.500\"","Wt(lbs/ft)":"43.39"},"10\"":{OD:"10.750\"",Wall:"0.594\"","Wt(lbs/ft)":"64.43"},"12\"":{OD:"12.750\"",Wall:"0.688\"","Wt(lbs/ft)":"88.63"},"16\"":{OD:"16.000\"",Wall:"0.844\"","Wt(lbs/ft)":"136.61"},"20\"":{OD:"20.000\"",Wall:"1.031\"","Wt(lbs/ft)":"208.87"},"24\"":{OD:"24.000\"",Wall:"1.219\"","Wt(lbs/ft)":"297.88"}},
+    "Sch 160":{"1/2\"":{OD:"0.840\"",Wall:"0.188\"","Wt(lbs/ft)":"1.31"},"1\"":{OD:"1.315\"",Wall:"0.250\"","Wt(lbs/ft)":"2.85"},"2\"":{OD:"2.375\"",Wall:"0.343\"","Wt(lbs/ft)":"7.45"},"3\"":{OD:"3.500\"",Wall:"0.438\"","Wt(lbs/ft)":"14.32"},"4\"":{OD:"4.500\"",Wall:"0.531\"","Wt(lbs/ft)":"22.60"},"6\"":{OD:"6.625\"",Wall:"0.718\"","Wt(lbs/ft)":"45.30"},"8\"":{OD:"8.625\"",Wall:"0.906\"","Wt(lbs/ft)":"74.69"},"10\"":{OD:"10.750\"",Wall:"1.125\"","Wt(lbs/ft)":"115.75"},"12\"":{OD:"12.750\"",Wall:"1.312\"","Wt(lbs/ft)":"160.27"}}
+  }
+};
+
+/* =========================================================================
+ *  SECTION 2 — STATE, PERSISTENCE, UTILITIES
+ * ===================================================================== */
+const STORAGE_KEY = 'tingle_pipe_estimator_v3';
+const CURRENT_KEY = 'tingle_pipe_estimator_v3_current';
+
+const num = (v,d=0)=>{const n=parseFloat(v);return Number.isFinite(n)?n:d;};
+const fmt$ = n => '$'+(Math.round(n*100)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt1 = n => (Math.round(n*10)/10).toLocaleString(undefined,{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmt0 = n => Math.round(n).toLocaleString();
+const uid  = () => 'id_'+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* Architectural fraction parser: "12'-6 1/2\"" <-> 12.5417 ft */
+function toArch(dec){
+  if(!isFinite(dec)) return '';
+  if(dec===0) return '0"';
+  const neg = dec<0; dec = Math.abs(dec);
+  const ft = Math.floor(dec);
+  let rem = (dec-ft)*12;
+  let ins = Math.floor(rem);
+  let sixt = Math.round((rem-ins)*16);
+  if(sixt===16){ins++;sixt=0}
+  let inStr = ins>0?ins+'':'';
+  if(sixt>0){
+    const g = (a,b)=>b?g(b,a%b):a;
+    const d = g(sixt,16);
+    inStr += (inStr?' ':'') + (sixt/d)+'/'+(16/d);
+  }
+  let out='';
+  if(ft>0) out += ft+"'-";
+  if(inStr) out += inStr+'"';
+  else if(ft>0) out = ft+"'";
+  return (neg?'-':'')+out;
+}
+function parseArch(s){
+  if(s==null) return 0;
+  const v = String(s).trim().replace(/"/g,'');
+  if(!v) return 0;
+  if(/^-?[0-9.]+$/.test(v)) return parseFloat(v);
+  // 12'-6 1/2  or  12' 6-1/2
+  let ft=0, inP='';
+  if(v.includes("'")){const p=v.split("'");ft=parseFloat(p[0])||0;inP=p[1]||'';}
+  else inP = v;
+  inP = inP.replace(/-/g,' ').trim();
+  let totalIn = 0;
+  for(const tok of inP.split(/\s+/).filter(Boolean)){
+    if(tok.includes('/')){const [a,b]=tok.split('/');totalIn += (parseFloat(a)||0)/(parseFloat(b)||1);}
+    else totalIn += parseFloat(tok)||0;
+  }
+  return ft + totalIn/12;
+}
+
+/* Default project shape */
+function emptyProject(){return{
+  id: uid(),
+  meta:{
+    name:'New Project',
+    client:'',
+    estimator:'',
+    bidDue:'',
+    location:'',
+    revision:'A',
+    bidNumber:'',
+    notes:''
+  },
+  rates:{
+    laborRate:65,        // composite rate $/hr
+    perDiem:150,
+    targetWeeks:4,
+    rodCost:3.50,
+    argonCost:0.40,
+    wheelCost:4.25,
+    ndtShot:150,
+    ndtPct:10,
+    salesTax:8.5,
+    profit:15,
+    overhead:8,
+    bondInsurance:1.5,
+    shift:"Day Shift"
+  },
+  efficiency:{ economy:85, supervision:90, labor:80, conditions:75, weather:80, equipment:85 },
+  spools:[],
+  specs:[],
+  cons:[],
+  equips:[],
+  subs:[],
+  tasks:[],
+  sketch:{ objs:[], nextId:0 },
+  attachments:[]
+}}
+let PROJECT = loadCurrent() || emptyProject();
+function saveCurrent(){
+  try{ localStorage.setItem(CURRENT_KEY, JSON.stringify(PROJECT)); }catch(e){console.warn(e);}
+}
+function loadCurrent(){
+  try{
+    const s = localStorage.getItem(CURRENT_KEY);
+    if(s) return JSON.parse(s);
+  }catch(e){}
+  return null;
+}
+function listSaved(){
+  try{
+    const s = localStorage.getItem(STORAGE_KEY);
+    return s ? JSON.parse(s) : {};
+  }catch(e){ return {}; }
+}
+function persistSaved(map){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(map)); }catch(e){}
+}
+
+/* =========================================================================
+ *  SECTION 3 — CALCULATION ENGINE
+ *  Faithful to estimator_v2.py + Estimation-main/calc.js with extensions:
+ *    - Material factor (additive on labor)
+ *    - Shift multiplier
+ *    - Bare-pipe weld count from LF/20 + multi-size BOM
+ *    - Hydrotest volume (gal) and paint area (SF) computed automatically
+ *    - Pipe steel weight (lbs) totalled
+ *    - NDT shot count rounded UP from joints×pct
+ * ===================================================================== */
+function calcSpool(s){
+  const nps  = s.NPS || '2';
+  const base = PIPE_DB[nps] || PIPE_DB['2'];
+  const schM = SCHEDULE_MULT[s.Schedule] ?? 1.0;
+  const wm   = WELD_TYPE_MULT[s["Weld Type"]] ?? 1.0;
+  const cf   = CONNECTION_FACTORS[s.Connection] || {fit:1,join:1};
+  const mat  = MATERIAL_FACTORS[s.Material] ?? 1.0;
+  const fm   = (s["Fab Loc"]==='Shop') ? 0.70 : 1.0;
+  const em   = ELEVATION_MULT[s.Elevation] ?? 1.0;
+  const lm   = LAYOUT_MULT[s.Layout] ?? 1.0;
+  const cm   = CONGESTION_MULT[s.Congestion] ?? 1.0;
+  const dm   = DIFFICULTY_MULT[s.Difficulty] ?? 1.0;
+  const sm   = SHIFT_MULT[s.Shift] ?? 1.0;
+  const hM   = HANGER_FACTORS[s["Hang Type"]] ?? 1.0;
+  const bom  = Array.isArray(s.bom) ? s.bom : [];
+  const hq   = num(s["Qty Hang"]);
+
+  let pLay=0,pEr=0,pFit=0,pW=0,pH=0,di=0,joinCnt=0,lfTotal=0,wtLbs=0,paintSF=0,hydroGal=0;
+
+  const ALL = lm*cm*em*dm*fm*mat*sm;
+  const ERECT = cm*em*dm*fm*mat*sm;
+  const FIT = cf.fit*cm*em*dm*fm*mat*sm;
+  const JOIN = cf.join*wm*schM*cm*dm*fm*mat*sm;
+
+  if(bom.length){
+    for(const it of bom){
+      const sizeStr = String(it.size||'').split('x')[0].replace(/"/g,'').trim();
+      const b = PIPE_DB[sizeStr] || base;
+      const q = num(it.qty);
+      if(!q) continue;
+      if(/Bare Pipe/i.test(it.type||'')){
+        pLay += q * b[0] * ALL;
+        pEr  += q * b[1] * ERECT;
+        const sjoints = q/20;
+        pW   += sjoints * b[3] * JOIN;
+        di   += sjoints * b[12];
+        joinCnt += sjoints;
+        lfTotal += q;
+        wtLbs += q * b[6];
+        paintSF += q * (Math.PI * b[11]) / 12;
+        hydroGal += q * Math.PI * Math.pow(((b[11] - 2*estWall(b[11], s.Schedule))/2)/12, 2) * 7.4805;
+      } else {
+        pFit += q * b[2] * FIT;
+        const wCount = (MULTI_MULTIPLIERS[it.type] ?? 2) * q;
+        pW += wCount * b[3] * JOIN;
+        di += wCount * b[12];
+        joinCnt += wCount;
+      }
+    }
+  } else {
+    const lf = num(s.LF), fq = num(s["Qty Fit"]), wq = num(s["Qty Join"]);
+    pLay = lf * base[0] * ALL;
+    pEr  = lf * base[1] * ERECT;
+    pFit = fq * base[2] * FIT;
+    pW   = wq * base[3] * JOIN;
+    di   = wq * base[12];
+    joinCnt = wq;
+    lfTotal = lf;
+    wtLbs = lf * base[6];
+    paintSF = lf * (Math.PI * base[11]) / 12;
+    hydroGal = lf * Math.PI * Math.pow(((base[11] - 2*estWall(base[11], s.Schedule))/2)/12, 2) * 7.4805;
+  }
+  pH = hq * base[5] * hM * em * cm;
+  const total = pLay+pEr+pFit+pW+pH;
+  return { lay:pLay, erect:pEr, fit:pFit, join:pW, hang:pH, total, di, joinCnt, lfTotal, wtLbs, paintSF, hydroGal };
+}
+/* Quick wall-thickness estimator from OD + schedule for hydrotest volume.
+   Returns wall in inches. Curve fit to ANSI B36.10 standard table. */
+function estWall(od, sched){
+  const t = {"Sch 5":0.045,"Sch 10":0.065,"Sch 20":0.080,"Sch 30":0.10,
+             "Sch 40":0.135,"Sch 60":0.18,"Sch 80":0.230,"Sch 100":0.28,
+             "Sch 120":0.32,"Sch 140":0.40,"Sch 160":0.50,
+             "STD":0.135,"XH":0.230,"XXH":0.500}[sched] || 0.135;
+  // Scale lightly with OD - manual confirms heavier wall above 12"
+  return Math.max(0.04, t * Math.pow(Math.max(od,0.5)/4.5, 0.20));
+}
+function calcConsumable(c){
+  const wq = num(c["Qty Welds"]);
+  const time = num(c["Weld Time (Hrs/ea)"]);
+  const pFlow = num(c["Purge Flow (CFH)"]);
+  const pLen  = num(c["Line Length (LF)"]);
+  const sFlow = num(c["Shield Flow (CFH)"]);
+  const lbsEa = num(c["Rod/Wire (lbs/ea)"]);
+  const cuts  = num(c["Qty Cuts"]);
+  const b = PIPE_DB[c.NPS] || PIPE_DB['2'];
+  const purge = c["Purge Type"]!=='None'
+    ? Math.PI*Math.pow((b[11]/2)/12,2)*pLen*4 + pFlow*time*wq
+    : 0;
+  const shield = c["Shield Type"]!=='None' ? sFlow*time*wq : 0;
+  return { lbs:lbsEa*wq, purgeCF:purge, shieldCF:shield, cutWheels:cuts*b[9] };
+}
+function totalEfficiency(eff){
+  const v = Object.values(eff||{});
+  if(!v.length) return 1.0;
+  return v.reduce((a,b)=>a+b,0)/(v.length*100);
+}
+function rollUp(){
+  const P = PROJECT;
+  const spools = P.spools.map(calcSpool);
+  const specs  = P.specs.map(s => num(s.Quantity) * (SPEC_OPS_DB[s.Operation] ?? 0));
+  const equips = P.equips.map(e => num(e.Duration) * (EQUIP_DB[e.Equipment] ?? 0));
+  const subs   = P.subs.map(s => num(s.Cost));
+  const cons   = P.cons.map(calcConsumable);
+
+  const rawMH = spools.reduce((a,b)=>a+b.total,0) + specs.reduce((a,b)=>a+b,0);
+  const totalDI = spools.reduce((a,b)=>a+b.di,0);
+  const totalJoins = spools.reduce((a,b)=>a+b.joinCnt,0);
+  const totalLF = spools.reduce((a,b)=>a+b.lfTotal,0);
+  const totalWt = spools.reduce((a,b)=>a+b.wtLbs,0);
+  const totalPaint = spools.reduce((a,b)=>a+b.paintSF,0);
+  const totalHydro = spools.reduce((a,b)=>a+b.hydroGal,0);
+
+  const eff = totalEfficiency(P.efficiency);
+  const adjMH = eff>0 ? rawMH/eff : rawMH;
+
+  const r = P.rates;
+  const consCost = cons.reduce((a,c)=>
+    a + c.lbs*num(r.rodCost,3.5)
+      + (c.purgeCF + c.shieldCF) * num(r.argonCost,0.4)
+      + c.cutWheels * num(r.wheelCost,4.25), 0);
+  const equipCost = equips.reduce((a,b)=>a+b,0);
+  const subCost = subs.reduce((a,b)=>a+b,0);
+  const tax = consCost * (num(r.salesTax,8.5)/100);
+
+  const ndtCount = Math.ceil(totalJoins * (num(r.ndtPct,10)/100));
+  const ndtCost = ndtCount * num(r.ndtShot,150);
+
+  let manDays = 0, maxDay = 0;
+  const mpByDay = {};
+  P.tasks.forEach(t=>{
+    const start = num(t["Start Day"]);
+    const dur   = num(t["Duration (Days)"]);
+    const crew  = num(t["Crew Size"]);
+    manDays += crew * dur;
+    const end = start + dur;
+    if(end>maxDay) maxDay = end;
+    for(let d=start; d<end; d++) mpByDay[d] = (mpByDay[d]||0) + crew;
+  });
+  const perDiemCost = manDays * num(r.perDiem,150);
+  const peakMP = Object.values(mpByDay).length ? Math.max(...Object.values(mpByDay)) : 0;
+
+  const laborCost = adjMH * num(r.laborRate,65);
+  const directs = laborCost + equipCost + consCost + subCost + tax + ndtCost + perDiemCost;
+  const overhead = directs * (num(r.overhead,8)/100);
+  const bond = directs * (num(r.bondInsurance,1.5)/100);
+  const subtotal = directs + overhead + bond;
+  const total = subtotal * (1 + num(r.profit,15)/100);
+  const costPerMH = adjMH>0 ? total/adjMH : 0;
+
+  return { rawMH, adjMH, totalDI, costPerMH, eff, laborCost, consCost, equipCost,
+    subCost, tax, ndtCost, perDiemCost, overhead, bond, directs, subtotal, total,
+    manDays, maxDay, peakMP, ndtCount, totalJoins, totalLF, totalWt, totalPaint, totalHydro,
+    spools, specs, equips, subs, cons };
+}
+
+/* =========================================================================
+ *  SECTION 4 — DOM HELPERS & TAB SYSTEM
+ * ===================================================================== */
+const $  = (q, root=document) => root.querySelector(q);
+const $$ = (q, root=document) => Array.from(root.querySelectorAll(q));
+function h(tag, attrs={}, ...children){
+  const e = document.createElement(tag);
+  for(const k in attrs){
+    if(k==='class') e.className=attrs[k];
+    else if(k==='style') e.style.cssText = attrs[k];
+    else if(k.startsWith('on') && typeof attrs[k]==='function') e.addEventListener(k.slice(2).toLowerCase(), attrs[k]);
+    else if(attrs[k]!==undefined && attrs[k]!==null) e.setAttribute(k, attrs[k]);
+  }
+  for(const c of children){
+    if(c==null) continue;
+    if(Array.isArray(c)) c.forEach(x=>e.appendChild(typeof x==='string'?document.createTextNode(x):x));
+    else e.appendChild(typeof c==='string'?document.createTextNode(c):c);
+  }
+  return e;
+}
+function toast(msg, isErr=false){
+  const t = h('div',{class:'toast',style: isErr ? 'border-color:var(--red);box-shadow:0 0 28px rgba(255,69,58,.2)' : ''}, msg);
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2400);
+}
+function openModal(title, bodyEl, footEl){
+  $('#modalTitle').textContent = title;
+  const body = $('#modalBody'); body.innerHTML='';
+  body.appendChild(bodyEl);
+  const foot = $('#modalFoot'); foot.innerHTML='';
+  if(footEl) foot.appendChild(footEl);
+  $('#modalRoot').classList.add('show');
+}
+function closeModal(){ $('#modalRoot').classList.remove('show'); }
+$('#modalRoot').addEventListener('click', e=>{
+  if(e.target.matches('[data-close-modal]') || e.target.id==='modalRoot') closeModal();
+});
+
+const TABS = [
+  {id:'project',  ix:'01', label:'Project'},
+  {id:'takeoff',  ix:'02', label:'Takeoff'},
+  {id:'specialty',ix:'03', label:'Specialty Ops'},
+  {id:'cons',     ix:'04', label:'Consumables'},
+  {id:'equip',    ix:'05', label:'Equipment'},
+  {id:'subs',     ix:'06', label:'Subcontractors'},
+  {id:'sched',    ix:'07', label:'Schedule / Gantt'},
+  {id:'ref',      ix:'08', label:'Reference DB'},
+  {id:'sketch',   ix:'09', label:'ISO Sketchpad'},
+  {id:'bom',      ix:'10', label:'Master BOM'},
+  {id:'finance',  ix:'11', label:'Bid / Financials'},
+  {id:'notes',    ix:'12', label:'Notes / RFI'}
+];
+let CURRENT_TAB = 'project';
+
+function buildTabs(){
+  const nav = $('#tabNav'); nav.innerHTML='';
+  for(const t of TABS){
+    const b = h('button',{class: (t.id===CURRENT_TAB?'active':''), onclick:()=>switchTab(t.id)},
+      h('span',{class:'ix'}, t.ix), t.label);
+    nav.appendChild(b);
+  }
+}
+function switchTab(id){
+  CURRENT_TAB = id;
+  $$('#tabNav button').forEach(b=>b.classList.remove('active'));
+  $$('#tabNav button').find(b=>b.textContent.includes(TABS.find(t=>t.id===id).label))?.classList.add('active');
+  $$('.pane').forEach(p=>p.classList.remove('active'));
+  $('#pane-'+id)?.classList.add('active');
+  if(id==='sketch') setTimeout(resizeSketchCanvas, 50);
+  if(id==='sched') renderGantt();
+  if(id==='bom') renderBOM();
+  if(id==='finance') renderFinance();
+  saveCurrent();
+}
+
+/* =========================================================================
+ *  SECTION 5 — INPUT WIDGETS
+ * ===================================================================== */
+function fieldText(label, val, onInput, opts={}){
+  const inp = h('input',{type:opts.type||'text',value:val??'',placeholder:opts.ph||'',oninput:e=>onInput(e.target.value)});
+  if(opts.inputmode) inp.setAttribute('inputmode', opts.inputmode);
+  if(opts.testid) inp.setAttribute('data-testid', opts.testid);
+  return h('div',{class:'field'},
+    h('label', null, label),
+    inp,
+    opts.help?h('div',{class:'help'}, opts.help):null
+  );
+}
+function fieldNum(label, val, onInput, opts={}){
+  return fieldText(label, val, v=>onInput(v), Object.assign({inputmode:'decimal',type:'text'}, opts));
+}
+function fieldSel(label, val, options, onChange, opts={}){
+  const sel = h('select',{onchange:e=>onChange(e.target.value)});
+  for(const o of options){
+    const op = h('option',{value:o}, o);
+    if(o===val) op.setAttribute('selected','');
+    sel.appendChild(op);
+  }
+  return h('div',{class:'field'}, h('label', null, label), sel, opts.help?h('div',{class:'help'}, opts.help):null);
+}
+function fieldSlider(label, val, onChange, min=40, max=100){
+  const row = h('div',{class:'slider-row'});
+  const lab = h('label', null, label);
+  const valEl = h('span',{class:'val'}, val+'%');
+  const slider = h('input',{type:'range',min,max,step:1,value:val});
+  slider.addEventListener('input', e=>{
+    const v = parseInt(e.target.value);
+    valEl.textContent = v+'%';
+    onChange(v);
+  });
+  row.append(lab, slider, valEl);
+  return row;
+}
+
+/* =========================================================================
+ *  SECTION 6 — TAB BUILDERS
+ * ===================================================================== */
+function buildPanes(){
+  const main = $('#mainPanes');
+  main.innerHTML='';
+  for(const t of TABS){
+    main.appendChild(h('section',{id:'pane-'+t.id, class:'pane'+(t.id===CURRENT_TAB?' active':'')}));
+  }
+  buildProjectTab();
+  buildTakeoffTab();
+  buildSpecialtyTab();
+  buildConsTab();
+  buildEquipTab();
+  buildSubsTab();
+  buildSchedTab();
+  buildRefTab();
+  buildSketchTab();
+  buildBOMTab();
+  buildFinanceTab();
+  buildNotesTab();
+}
+
+/* ---------- PROJECT TAB ---------- */
+function buildProjectTab(){
+  const pane = $('#pane-project');
+  pane.innerHTML = '';
+  // Meta
+  const meta = h('div',{class:'section'},
+    h('div',{class:'section-head'},
+      h('h3', null, 'Project Information'),
+      h('span',{class:'tagline'}, 'Identifying details for this bid')),
+    h('div',{class:'section-body'},
+      h('div',{class:'grid g3'},
+        fieldText('Project Name', PROJECT.meta.name, v=>{PROJECT.meta.name=v; saveCurrent();}),
+        fieldText('Client / Owner', PROJECT.meta.client, v=>{PROJECT.meta.client=v; saveCurrent();}),
+        fieldText('Estimator', PROJECT.meta.estimator, v=>{PROJECT.meta.estimator=v; saveCurrent();}),
+        fieldText('Bid Due', PROJECT.meta.bidDue, v=>{PROJECT.meta.bidDue=v; saveCurrent();}, {type:'date'}),
+        fieldText('Site Location', PROJECT.meta.location, v=>{PROJECT.meta.location=v; saveCurrent();}),
+        fieldText('Bid Number', PROJECT.meta.bidNumber, v=>{PROJECT.meta.bidNumber=v; saveCurrent();}),
+        fieldText('Revision', PROJECT.meta.revision, v=>{PROJECT.meta.revision=v; saveCurrent();})
+      )));
+  // Rates
+  const rates = h('div',{class:'section'},
+    h('div',{class:'section-head'},
+      h('h3', null, 'Financial Parameters'),
+      h('span',{class:'tagline'}, 'Default labor rate is a composite (see manual p.xv)')),
+    h('div',{class:'section-body'},
+      h('div',{class:'grid g4'},
+        fieldNum('Labor Rate ($/Hr)', PROJECT.rates.laborRate, v=>{PROJECT.rates.laborRate=num(v);redraw();}, {help:'Composite of all crew tiers'}),
+        fieldNum('Per Diem ($/Day/Man)', PROJECT.rates.perDiem, v=>{PROJECT.rates.perDiem=num(v);redraw();}),
+        fieldNum('Target Duration (Weeks)', PROJECT.rates.targetWeeks, v=>{PROJECT.rates.targetWeeks=num(v);redraw();}),
+        fieldSel('Shift Pattern', PROJECT.rates.shift, Object.keys(SHIFT_MULT), v=>{PROJECT.rates.shift=v;redrawTakeoff();redraw();}, {help:'Applies multiplier to all labor'}),
+        fieldNum('Rod / Wire ($/lb)', PROJECT.rates.rodCost, v=>{PROJECT.rates.rodCost=num(v);redraw();}),
+        fieldNum('Shield/Purge Gas ($/CF)', PROJECT.rates.argonCost, v=>{PROJECT.rates.argonCost=num(v);redraw();}),
+        fieldNum('6" Cut Wheel ($)', PROJECT.rates.wheelCost, v=>{PROJECT.rates.wheelCost=num(v);redraw();}),
+        fieldNum('NDT Shot ($)', PROJECT.rates.ndtShot, v=>{PROJECT.rates.ndtShot=num(v);redraw();}),
+        fieldNum('NDT Coverage (%)', PROJECT.rates.ndtPct, v=>{PROJECT.rates.ndtPct=num(v);redraw();}, {help:'% of weld joints X-rayed'}),
+        fieldNum('Sales Tax (%)', PROJECT.rates.salesTax, v=>{PROJECT.rates.salesTax=num(v);redraw();}),
+        fieldNum('Overhead (%)', PROJECT.rates.overhead, v=>{PROJECT.rates.overhead=num(v);redraw();}),
+        fieldNum('Bond + Insurance (%)', PROJECT.rates.bondInsurance, v=>{PROJECT.rates.bondInsurance=num(v);redraw();}),
+        fieldNum('Profit (%)', PROJECT.rates.profit, v=>{PROJECT.rates.profit=num(v);redraw();})
+      ),
+      h('hr',{class:'div'}),
+      h('div',{style:'background:var(--bg);border:1px solid var(--border);padding:10px;border-radius:6px'},
+        h('div',{class:'pill', style:'margin-bottom:8px'}, 'Composite Labor Rate Calculator'),
+        h('p',{style:'color:var(--muted);font-size:12px;margin:0 0 10px'}, 'From manual p.xvi — paste hourly wages and crew counts to derive your composite $/hr.'),
+        h('div',{class:'grid g4'},
+          h('div',null), h('div',{class:'mono muted center'}, 'Hours'), h('div',{class:'mono muted center'}, 'Rate $/Hr'), h('div',{class:'mono muted center'}, 'Subtotal')
+        ),
+        crewCompRow('General Foreman', 'gf', 2, 28),
+        crewCompRow('Foreman', 'fm', 8, 27),
+        crewCompRow('Journeyman (×n)', 'jm', 80, 25),
+        crewCompRow('Apprentice 5th Yr', 'ap', 8, 19),
+        h('div',{class:'grid g4', style:'margin-top:8px;border-top:1px solid var(--border);padding-top:8px'},
+          h('div',{style:'grid-column:1/3'}, h('b',{class:'pill warn'}, 'Composite Rate')),
+          h('div',{class:'mono txt-right'}, h('span',{id:'compRateTotalHrs'}, '0')),
+          h('div',{class:'mono txt-right', style:'color:var(--green);font-weight:800'}, h('span',{id:'compRateOut'}, '$0.00/hr'))
+        ),
+        h('div',{style:'display:flex;gap:8px;margin-top:8px;flex-wrap:wrap'},
+          h('button',{class:'btn neon sm', onclick:applyCompRate}, 'APPLY AS LABOR RATE')
+        )
+      )));
+  // Efficiency
+  const effEl = h('div',{class:'section'},
+    h('div',{class:'section-head'},
+      h('h3', null, 'Global Jobsite Efficiency'),
+      h('span',{class:'tagline'}, 'Per J.S. Page Section "The Human Factor": 6 elements, averaged')),
+    h('div',{class:'section-body'},
+      ...['economy','supervision','labor','conditions','weather','equipment'].map(k => fieldSlider(
+        ({economy:'1. Economy', supervision:'2. Supervision', labor:'3. Labor Relations',
+          conditions:'4. Conditions', weather:'5. Weather', equipment:'6. Equipment Availability'})[k],
+        PROJECT.efficiency[k] ?? 75,
+        v=>{PROJECT.efficiency[k]=v;redraw();}
+      )),
+      h('div',{style:'margin-top:10px;text-align:center;font-family:var(--mono);font-weight:800;font-size:15px;color:var(--green)', id:'effSummary'},
+        'Overall: 0%')));
+
+  pane.append(meta, rates, effEl);
+  setTimeout(updateCompRate, 50);
+}
+
+/* ----- crew composite rate row helper ----- */
+const _crew = { gf:{hrs:2,rate:28}, fm:{hrs:8,rate:27}, jm:{hrs:80,rate:25}, ap:{hrs:8,rate:19} };
+function crewCompRow(name, key, defHrs, defRate){
+  return h('div',{class:'grid g4', style:'margin-top:6px'},
+    h('div',{class:'mono', style:'align-self:center;font-size:12px'}, name),
+    h('input',{type:'text',inputmode:'decimal',value:defHrs, oninput:e=>{_crew[key].hrs=num(e.target.value); updateCompRate();}}),
+    h('input',{type:'text',inputmode:'decimal',value:defRate, oninput:e=>{_crew[key].rate=num(e.target.value); updateCompRate();}}),
+    h('div',{class:'mono txt-right', id:'cr_'+key, style:'align-self:center;color:var(--text-2)'}, '$'+(defHrs*defRate).toFixed(2))
+  );
+}
+function updateCompRate(){
+  let totalHrs=0, totalCost=0;
+  for(const k in _crew){
+    const h = _crew[k].hrs, r=_crew[k].rate, sub=h*r;
+    totalHrs += h; totalCost += sub;
+    const el=document.getElementById('cr_'+k); if(el) el.textContent='$'+sub.toFixed(2);
+  }
+  const comp = totalHrs>0 ? totalCost/totalHrs : 0;
+  const outEl = document.getElementById('compRateOut');
+  const hrsEl = document.getElementById('compRateTotalHrs');
+  if(outEl) outEl.textContent = '$'+comp.toFixed(2)+'/hr';
+  if(hrsEl) hrsEl.textContent = totalHrs.toFixed(0);
+  window._lastComp = comp;
+}
+function applyCompRate(){
+  if(!window._lastComp){ toast('Enter crew data first', true); return; }
+  PROJECT.rates.laborRate = Math.round(window._lastComp*100)/100;
+  toast('Composite rate applied: $'+PROJECT.rates.laborRate.toFixed(2)+'/hr');
+  buildProjectTab(); redraw();
+}
+
+/* ---------- TAKEOFF TAB ---------- */
+function buildTakeoffTab(){
+  const pane=$('#pane-takeoff'); pane.innerHTML='';
+  const toolbar=h('div',{class:'section-head',style:'margin-bottom:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px'},
+    h('h3',null,'Pipe Takeoff — Spool Runs'),
+    h('div',{style:'display:flex;gap:6px;flex-wrap:wrap'},
+      h('button',{class:'btn neon',onclick:addSpool},'+ ADD SPOOL'),
+      h('button',{class:'btn',onclick:importSpoolsFromSketch},'IMPORT FROM SKETCH'),
+      h('button',{class:'btn sm ghost',onclick:()=>exportCSV('takeoff')},'CSV ↓')
+    )
+  );
+  const container=h('div',{id:'spoolContainer'});
+  pane.append(toolbar,container);
+  PROJECT.spools.forEach((_,i)=>appendSpoolLine(i));
+}
+function addSpool(){
+  PROJECT.spools.push(defaultSpool());
+  saveCurrent();
+  appendSpoolLine(PROJECT.spools.length-1);
+  redraw();
+}
+function defaultSpool(){
+  return{id:uid(),Tag:'Line-'+(PROJECT.spools.length+1),NPS:'2',Schedule:'Sch 40',
+    Connection:'Butt Weld','Weld Type':'Stick (SMAW)',Material:'Carbon Steel',
+    'Fab Loc':'Field',Elevation:'Ground',Layout:'Average',Congestion:'Moderate',
+    Difficulty:'Moderate',Shift:'Day Shift',LF:'0','Qty Fit':'0','Qty Join':'0',
+    'Qty Hang':'0','Hang Type':'Clevis (Standard)',bom:[]};
+}
+function appendSpoolLine(idx){
+  const container=$('#spoolContainer'); if(!container) return;
+  const s=PROJECT.spools[idx];
+  const res=calcSpool(s);
+  const lineEl=h('div',{class:'line','data-spool-idx':idx});
+
+  const R1=h('div',{class:'line-grid',style:'grid-template-columns:repeat(auto-fill,minmax(120px,1fr))'});
+  const R2=h('div',{class:'line-grid',style:'grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-top:8px'});
+
+  const mk=(label,key,type='text',opts={})=>{
+    const inp=h('input',{type:type==='num'?'text':type,value:s[key]??'',placeholder:'0',
+      inputmode:type==='num'?'decimal':undefined,
+      oninput:e=>{s[key]=type==='num'?e.target.value:e.target.value;updateSpoolLine(idx);}});
+    return h('div',{class:'field'},h('label',null,label),inp);
+  };
+  const mkSel=(label,key,opts)=>{
+    const sel=h('select',{onchange:e=>{s[key]=e.target.value;updateSpoolLine(idx);}});
+    for(const o of opts){const op=h('option',{value:o},o);if(o===s[key])op.setAttribute('selected','');sel.appendChild(op);}
+    return h('div',{class:'field'},h('label',null,label),sel);
+  };
+
+  R1.append(
+    mk('Tag','Tag'),
+    mkSel('NPS','NPS',NPS_LIST),
+    mkSel('Schedule','Schedule',Object.keys(SCHEDULE_MULT)),
+    mkSel('Connection','Connection',Object.keys(CONNECTION_FACTORS)),
+    mkSel('Material','Material',Object.keys(MATERIAL_FACTORS)),
+    mk('LF','LF','num'),
+    mk('Qty Fit','Qty Fit','num'),
+    mk('Qty Join','Qty Join','num'),
+  );
+  R2.append(
+    mkSel('Weld Type','Weld Type',Object.keys(WELD_TYPE_MULT)),
+    mkSel('Fab Loc','Fab Loc',['Field','Shop']),
+    mkSel('Elevation','Elevation',Object.keys(ELEVATION_MULT)),
+    mkSel('Layout','Layout',Object.keys(LAYOUT_MULT)),
+    mkSel('Congestion','Congestion',Object.keys(CONGESTION_MULT)),
+    mkSel('Difficulty','Difficulty',Object.keys(DIFFICULTY_MULT)),
+    mk('Qty Hangers','Qty Hang','num'),
+    mkSel('Hanger Type','Hang Type',Object.keys(HANGER_FACTORS)),
+  );
+
+  const foot=h('div',{class:'line-foot'});
+  const breakdown=h('div',{class:'breakdown',id:'bd-'+s.id});
+  const actions=h('div',{class:'line-actions'});
+
+  const bomBtn=h('button',{class:'btn sm'+(s.bom&&s.bom.length?' ok':'')+'',onclick:()=>openBOMModal(idx)},
+    s.bom&&s.bom.length?'BOM('+s.bom.length+')':'+ DETAIL BOM');
+  const cloneBtn=h('button',{class:'btn sm',onclick:()=>cloneSpool(idx)},'⧉ CLONE');
+  const delBtn=h('button',{class:'btn sm bad',onclick:()=>removeSpool(idx)},'✕');
+  actions.append(bomBtn,cloneBtn,delBtn);
+  updateBreakdown(breakdown,res);
+  foot.append(breakdown,actions);
+  lineEl.append(R1,R2,foot);
+  container.appendChild(lineEl);
+}
+function updateBreakdown(el,res){
+  el.innerHTML=`<b>${fmt1(res.total)} MH</b> &nbsp;`+
+    `<span style="color:var(--muted)">Lay:<b style="color:var(--text)">${fmt1(res.lay)}</b></span>`+
+    `<span style="color:var(--muted)">Er:<b style="color:var(--text)">${fmt1(res.erect)}</b></span>`+
+    `<span style="color:var(--muted)">Fit:<b style="color:var(--text)">${fmt1(res.fit)}</b></span>`+
+    `<span style="color:var(--muted)">Join:<b style="color:var(--text)">${fmt1(res.join)}</b></span>`+
+    `<span style="color:var(--muted)">Hang:<b style="color:var(--text)">${fmt1(res.hang)}</b></span>`+
+    `<span style="color:var(--purple)">DI:${fmt1(res.di)}</span>`+
+    `<span style="color:var(--muted)">Jts:${fmt1(res.joinCnt)}</span>`+
+    `<span style="color:var(--muted)">${fmt0(res.wtLbs)}lbs</span>`+
+    `<span style="color:var(--muted)">${fmt0(res.hydroGal)}gal</span>`;
+}
+function updateSpoolLine(idx){
+  const s=PROJECT.spools[idx];
+  const res=calcSpool(s);
+  const bd=document.getElementById('bd-'+s.id);
+  if(bd) updateBreakdown(bd,res);
+  saveCurrent(); redrawDash();
+}
+function removeSpool(idx){
+  PROJECT.spools.splice(idx,1);
+  saveCurrent(); buildTakeoffTab(); redraw();
+}
+function cloneSpool(idx){
+  const copy=clone(PROJECT.spools[idx]);
+  copy.id=uid(); copy.Tag=copy.Tag+'-C';
+  PROJECT.spools.splice(idx+1,0,copy);
+  saveCurrent(); buildTakeoffTab(); redraw();
+}
+function redrawTakeoff(){ buildTakeoffTab(); }
+
+function importSpoolsFromSketch(){
+  const objs=PROJECT.sketch.objs;
+  const pipes=objs.filter(o=>o.type==='Pipe');
+  if(!pipes.length){toast('No pipe runs on sketchpad',true);return;}
+  pipes.forEach(o=>{
+    const s=defaultSpool();
+    s.Tag=o.tag||'Sketch-'+PROJECT.spools.length;
+    s.NPS=o.size||'2';
+    s.LF=String((o.length||0).toFixed(1));
+    PROJECT.spools.push(s);
+  });
+  saveCurrent(); buildTakeoffTab(); redraw();
+  toast('Imported '+pipes.length+' runs from sketchpad');
+}
+
+/* Detailed BOM modal */
+function openBOMModal(idx){
+  const s=PROJECT.spools[idx];
+  const rows=[...s.bom];
+  const container=h('div');
+  const hdr=h('div',{class:'grid',style:'grid-template-columns:130px 1fr 80px 36px;gap:6px;margin-bottom:6px'},
+    h('div',{class:'muted',style:'font-size:10px;font-weight:800;letter-spacing:.12em'},'SIZE'),
+    h('div',{class:'muted',style:'font-size:10px;font-weight:800;letter-spacing:.12em'},'COMPONENT'),
+    h('div',{class:'muted',style:'font-size:10px;font-weight:800;letter-spacing:.12em'},'QTY/LF'),
+    h('div'));
+  const rowsEl=h('div');
+  container.append(hdr,rowsEl);
+  const render=()=>{
+    rowsEl.innerHTML='';
+    rows.forEach((r,i)=>{
+      const sizeInp=h('input',{type:'text',value:r.size||s.NPS,oninput:e=>rows[i].size=e.target.value});
+      const typeSel=h('select',{onchange:e=>rows[i].type=e.target.value});
+      Object.keys(MULTI_MULTIPLIERS).forEach(o=>{const op=h('option',{value:o},o);if(o===r.type)op.setAttribute('selected','');typeSel.appendChild(op);});
+      const qtyInp=h('input',{type:'text',inputmode:'decimal',value:r.qty||'',oninput:e=>rows[i].qty=e.target.value});
+      const delBtn=h('button',{class:'btn sm bad icon',onclick:()=>{rows.splice(i,1);render();}},'✕');
+      rowsEl.appendChild(h('div',{class:'grid',style:'grid-template-columns:130px 1fr 80px 36px;gap:6px;margin-bottom:6px'},sizeInp,typeSel,qtyInp,delBtn));
+    });
+  };
+  render();
+  const addBtn=h('button',{class:'btn',onclick:()=>{rows.push({size:s.NPS,type:'Bare Pipe (LF)',qty:''});render();}},'+ Add Row');
+  const saveBtn=h('button',{class:'btn ok',onclick:()=>{
+    s.bom=rows.filter(r=>r.qty&&parseFloat(r.qty)>0);
+    // Auto-compute LF and fit from BOM
+    let lf=0,fit=0,join=0;
+    s.bom.forEach(r=>{
+      const q=parseFloat(r.qty)||0;
+      if(/Bare Pipe/i.test(r.type)){lf+=q;join+=q/20;}
+      else{fit+=q;join+=(MULTI_MULTIPLIERS[r.type]||2)*q;}
+    });
+    s.LF=lf.toFixed(1); s['Qty Fit']=Math.round(fit)+''; s['Qty Join']=Math.round(join)+'';
+    saveCurrent(); buildTakeoffTab(); redraw(); closeModal();
+    toast('BOM saved');
+  }},'SAVE BOM');
+  const foot=h('div',{style:'display:flex;gap:8px'}); foot.append(addBtn,saveBtn);
+  openModal('Detailed BOM — '+s.Tag, container, foot);
+}
+
+/* ---------- SPECIALTY OPS TAB ---------- */
+function buildSpecialtyTab(){
+  const pane=$('#pane-specialty'); pane.innerHTML='';
+  const bar=h('div',{class:'section-head',style:'background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px'},
+    h('h3',null,'Specialty Operations'),
+    h('button',{class:'btn purple',onclick:addSpec},'+ ADD OPERATION'));
+  const con=h('div',{id:'specContainer'});
+  pane.append(bar,con);
+  PROJECT.specs.forEach((_,i)=>appendSpecLine(i));
+}
+function addSpec(){
+  PROJECT.specs.push({id:uid(),Operation:Object.keys(SPEC_OPS_DB)[0],Quantity:'1'});
+  saveCurrent(); appendSpecLine(PROJECT.specs.length-1); redraw();
+}
+function appendSpecLine(idx){
+  const con=$('#specContainer'); if(!con) return;
+  const s=PROJECT.specs[idx];
+  const mh=()=>(parseFloat(s.Quantity)||0)*(SPEC_OPS_DB[s.Operation]||0);
+  const line=h('div',{class:'line specialty'});
+  const sel=h('select',{onchange:e=>{s.Operation=e.target.value;valEl.textContent=fmt1(mh())+' MH';saveCurrent();redrawDash();}});
+  Object.keys(SPEC_OPS_DB).forEach(o=>{const op=h('option',{value:o},o);if(o===s.Operation)op.setAttribute('selected','');sel.appendChild(op);});
+  const qInp=h('input',{type:'text',inputmode:'decimal',value:s.Quantity,style:'width:80px',oninput:e=>{s.Quantity=e.target.value;valEl.textContent=fmt1(mh())+' MH';saveCurrent();redrawDash();}});
+  const valEl=h('span',{class:'num-pill',style:'margin-left:auto'},h('span',{class:'n'},fmt1(mh())),' MH');
+  const del=h('button',{class:'btn sm bad icon',onclick:()=>{PROJECT.specs.splice(idx,1);saveCurrent();buildSpecialtyTab();redraw();}},'✕');
+  line.append(h('div',{style:'display:flex;gap:10px;align-items:center;flex-wrap:wrap'},
+    h('div',{class:'field',style:'flex:1;min-width:220px'},h('label',null,'Operation'),sel),
+    h('div',{class:'field',style:'width:90px'},h('label',null,'Quantity'),qInp),
+    valEl, del));
+  con.appendChild(line);
+}
+
+/* ---------- CONSUMABLES TAB ---------- */
+function buildConsTab(){
+  const pane=$('#pane-cons'); pane.innerHTML='';
+  const bar=h('div',{class:'section-head',style:'background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px'},
+    h('h3',null,'Weld Consumables'),
+    h('button',{class:'btn warn',onclick:addCon},'+ ADD CONSUMABLE'));
+  const con=h('div',{id:'conContainer'});
+  pane.append(bar,con);
+  PROJECT.cons.forEach((_,i)=>appendConLine(i));
+}
+function defaultCon(){
+  return{id:uid(),NPS:'2',Schedule:'Sch 40','Weld Type':'Stick (SMAW)',
+    'Qty Welds':'1','Weld Time (Hrs/ea)':'1.00','Purge Type':'None',
+    'Line Length (LF)':'0','Purge Flow (CFH)':'30','Shield Type':'Argon',
+    'Shield Flow (CFH)':'35','Rod/Wire (lbs/ea)':'0.5','Qty Cuts':'0'};
+}
+function addCon(){
+  PROJECT.cons.push(defaultCon());
+  saveCurrent(); appendConLine(PROJECT.cons.length-1); redraw();
+}
+function appendConLine(idx){
+  const con=$('#conContainer'); if(!con) return;
+  const c=PROJECT.cons[idx];
+  const line=h('div',{class:'line consumable'});
+  const R=h('div',{class:'line-grid',style:'grid-template-columns:repeat(auto-fill,minmax(120px,1fr))'});
+  const mkS=(lbl,key,opts)=>{const sel=h('select',{onchange:e=>{c[key]=e.target.value;updateConLine(idx,line);}});opts.forEach(o=>{const op=h('option',{value:o},o);if(o===c[key])op.setAttribute('selected','');sel.appendChild(op);});return h('div',{class:'field'},h('label',null,lbl),sel);};
+  const mkN=(lbl,key)=>{const inp=h('input',{type:'text',inputmode:'decimal',value:c[key]??'0',oninput:e=>{c[key]=e.target.value;updateConLine(idx,line);}});return h('div',{class:'field'},h('label',null,lbl),inp);};
+  R.append(
+    mkS('NPS','NPS',NPS_LIST),mkS('Schedule','Schedule',Object.keys(SCHEDULE_MULT)),
+    mkS('Weld Type','Weld Type',Object.keys(WELD_TYPE_MULT)),
+    mkN('Qty Welds','Qty Welds'),mkN('Weld Hrs/Ea','Weld Time (Hrs/ea)'),
+    mkS('Purge Type','Purge Type',['None','Argon','Nitrogen']),
+    mkN('Line LF (purge)','Line Length (LF)'),mkN('Purge CFH','Purge Flow (CFH)'),
+    mkS('Shield Gas','Shield Type',['None','Argon','C25','He75-Ar25']),
+    mkN('Shield CFH','Shield Flow (CFH)'),mkN('Rod/Wire lb/ea','Rod/Wire (lbs/ea)'),
+    mkN('Qty Cuts','Qty Cuts')
+  );
+  const res=calcConsumable(c);
+  const foot=h('div',{class:'line-foot'});
+  const lbl=h('div',{class:'breakdown',id:'con-bd-'+c.id});
+  updateConBd(lbl,res);
+  const del=h('button',{class:'btn sm bad',onclick:()=>{PROJECT.cons.splice(idx,1);saveCurrent();buildConsTab();redraw();}},'✕ Remove');
+  foot.append(lbl,del); line.append(R,foot); con.appendChild(line);
+}
+function updateConBd(el,r){el.innerHTML=`<b>${r.lbs.toFixed(2)} lbs rod</b> &nbsp;<span style="color:var(--muted)">Purge: <b>${r.purgeCF.toFixed(0)} CF</b></span><span style="color:var(--muted)">Shield: <b>${r.shieldCF.toFixed(0)} CF</b></span><span style="color:var(--muted)">Wheels: <b>${r.cutWheels.toFixed(1)}</b></span>`;}
+function updateConLine(idx,line){
+  const c=PROJECT.cons[idx];
+  const r=calcConsumable(c);
+  const el=document.getElementById('con-bd-'+c.id); if(el) updateConBd(el,r);
+  saveCurrent(); redrawDash();
+}
+
+/* ---------- EQUIPMENT TAB ---------- */
+function buildEquipTab(){
+  const pane=$('#pane-equip'); pane.innerHTML='';
+  const bar=h('div',{class:'section-head',style:'background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px'},
+    h('h3',null,'Equipment & Rentals'),
+    h('button',{class:'btn warn',onclick:addEquip},'+ ADD EQUIPMENT'));
+  const con=h('div',{id:'equipContainer'});
+  pane.append(bar,con);
+  PROJECT.equips.forEach((_,i)=>appendEquipLine(i));
+}
+function addEquip(){ PROJECT.equips.push({id:uid(),Equipment:Object.keys(EQUIP_DB)[0],Duration:'1',Unit:'Days'}); saveCurrent(); appendEquipLine(PROJECT.equips.length-1); redraw(); }
+function appendEquipLine(idx){
+  const con=$('#equipContainer'); if(!con) return;
+  const e=PROJECT.equips[idx];
+  const cost=()=>(parseFloat(e.Duration)||0)*(EQUIP_DB[e.Equipment]||0);
+  const line=h('div',{class:'line equip'});
+  const sel=h('select',{onchange:ev=>{e.Equipment=ev.target.value;valEl.textContent=fmt$(cost());saveCurrent();redrawDash();}});
+  Object.keys(EQUIP_DB).forEach(o=>{const op=h('option',{value:o},o+' — $'+EQUIP_DB[o]+'/day');if(o===e.Equipment)op.setAttribute('selected','');sel.appendChild(op);});
+  const dur=h('input',{type:'text',inputmode:'decimal',value:e.Duration,style:'width:80px',oninput:ev=>{e.Duration=ev.target.value;valEl.textContent=fmt$(cost());saveCurrent();redrawDash();}});
+  const unitSel=h('select',{onchange:ev=>e.Unit=ev.target.value,style:'width:90px'});
+  ['Days','Weeks','Months'].forEach(u=>{const op=h('option',{value:u},u);if(u===e.Unit)op.setAttribute('selected','');unitSel.appendChild(op);});
+  const valEl=h('span',{class:'num-pill',style:'margin-left:auto;color:var(--green)'},fmt$(cost()));
+  const del=h('button',{class:'btn sm bad icon',onclick:()=>{PROJECT.equips.splice(idx,1);saveCurrent();buildEquipTab();redraw();}},'✕');
+  line.append(h('div',{style:'display:flex;gap:10px;align-items:center;flex-wrap:wrap'},
+    h('div',{class:'field',style:'flex:1;min-width:240px'},h('label',null,'Equipment / Tool'),sel),
+    h('div',{class:'field',style:'width:80px'},h('label',null,'Duration'),dur),
+    unitSel, valEl, del));
+  con.appendChild(line);
+}
+
+/* ---------- SUBS TAB ---------- */
+function buildSubsTab(){
+  const pane=$('#pane-subs'); pane.innerHTML='';
+  const bar=h('div',{class:'section-head',style:'background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px'},
+    h('h3',null,'Subcontractors & Indirects'),
+    h('button',{class:'btn bad',onclick:addSub},'+ ADD SUBCONTRACTOR'));
+  const con=h('div',{id:'subContainer'});
+  pane.append(bar,con);
+  PROJECT.subs.forEach((_,i)=>appendSubLine(i));
+}
+function addSub(){ PROJECT.subs.push({id:uid(),Vendor:'Vendor / Service',Cost:'0',Notes:''}); saveCurrent(); appendSubLine(PROJECT.subs.length-1); redraw(); }
+function appendSubLine(idx){
+  const con=$('#subContainer'); if(!con) return;
+  const s=PROJECT.subs[idx];
+  const line=h('div',{class:'line sub'});
+  const vend=h('input',{type:'text',value:s.Vendor,placeholder:'Vendor or Service Name',oninput:e=>{s.Vendor=e.target.value;saveCurrent();}});
+  const cost=h('input',{type:'text',inputmode:'decimal',value:s.Cost,placeholder:'$0.00',oninput:e=>{s.Cost=e.target.value;valEl.textContent=fmt$(parseFloat(e.target.value)||0);saveCurrent();redrawDash();}});
+  const notes=h('input',{type:'text',value:s.Notes||'',placeholder:'Notes/Scope',oninput:e=>{s.Notes=e.target.value;saveCurrent();}});
+  const valEl=h('span',{class:'num-pill',style:'color:var(--red)'},fmt$(parseFloat(s.Cost)||0));
+  const del=h('button',{class:'btn sm bad icon',onclick:()=>{PROJECT.subs.splice(idx,1);saveCurrent();buildSubsTab();redraw();}},'✕');
+  line.append(h('div',{style:'display:grid;grid-template-columns:1fr 130px 1fr auto auto;gap:8px;align-items:center;flex-wrap:wrap'},
+    h('div',{class:'field'},h('label',null,'Vendor / Scope'),vend),
+    h('div',{class:'field'},h('label',null,'Cost ($)'),cost),
+    h('div',{class:'field'},h('label',null,'Notes'),notes),
+    valEl, del));
+  con.appendChild(line);
+}
+
+/* ---------- SCHEDULE TAB ---------- */
+function buildSchedTab(){
+  const pane=$('#pane-sched'); pane.innerHTML='';
+  const bar=h('div',{class:'section-head',style:'background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px'},
+    h('h3',null,'Outage / Construction Schedule'),
+    h('div',{style:'display:flex;gap:6px;flex-wrap:wrap'},
+      h('button',{class:'btn',onclick:addTask},'+ ADD TASK'),
+      h('button',{class:'btn purple',onclick:importTasksFromTakeoff},'IMPORT FROM TAKEOFF'),
+      h('button',{class:'btn sm ghost',onclick:()=>exportCSV('sched')},'CSV ↓')
+    )
+  );
+  const macros=h('div',{class:'section',style:'margin-bottom:10px'});
+  macros.innerHTML=`<div class="section-head"><h3>Macro Planner</h3></div><div class="section-body">
+    <div class="grid g4">
+      <div class="field"><label>Total Sched MH</label><input id="macTotMH" readonly style="color:var(--neon);font-weight:800;background:var(--bg)" value="0.0"></div>
+      <div class="field"><label>Shift Hours</label><input id="macShift" type="text" inputmode="decimal" value="10" oninput="calcMacros()"></div>
+      <div class="field"><label>Avail Crew</label><input id="macCrew" type="text" inputmode="decimal" value="4" oninput="calcMacros()"></div>
+      <div class="field"><label>→ Req. Days</label><input id="macDays" readonly style="color:var(--yellow);font-weight:800;background:var(--bg)" value="0"></div>
+      <div class="field"><label>Target Days</label><input id="macTarget" type="text" inputmode="decimal" value="14" oninput="calcMacros()"></div>
+      <div class="field"><label>→ Req. Crew</label><input id="macReqCrew" readonly style="color:var(--orange);font-weight:800;background:var(--bg)" value="0"></div>
+    </div></div>`;
+  const con=h('div',{id:'taskContainer',style:'margin-bottom:12px'});
+  const ganttSec=h('div',{class:'section'});
+  ganttSec.innerHTML='<div class="section-head"><h3>Gantt Chart</h3></div>';
+  const ganttEl=h('div',{class:'gantt',id:'ganttEl'});
+  ganttSec.appendChild(ganttEl);
+  pane.append(bar,macros,con,ganttSec);
+  PROJECT.tasks.forEach((_,i)=>appendTaskLine(i));
+  calcMacros(); renderGantt();
+}
+window.calcMacros=function(){
+  const totMH=PROJECT.tasks.reduce((a,t)=>a+(parseFloat(t['Est MH'])||0),0);
+  const shift=parseFloat(document.getElementById('macShift')?.value)||10;
+  const crew=parseFloat(document.getElementById('macCrew')?.value)||1;
+  const target=parseFloat(document.getElementById('macTarget')?.value)||1;
+  const el=id=>document.getElementById(id);
+  if(el('macTotMH')) el('macTotMH').value=fmt1(totMH);
+  if(el('macDays')) el('macDays').value=fmt1(totMH/(crew*shift)||0);
+  if(el('macReqCrew')) el('macReqCrew').value=fmt1(totMH/(target*shift)||0);
+};
+function defaultTask(name='New Task',mh=0){ return{id:uid(),'Task Name':name,'Est MH':mh.toFixed(1),'Crew Size':'2','Shift Hrs':'10','Start Day':'1','Duration (Days)':'1','% Complete':'0',Status:'Not Started'}; }
+function addTask(){ PROJECT.tasks.push(defaultTask()); saveCurrent(); appendTaskLine(PROJECT.tasks.length-1); calcMacros(); renderGantt(); }
+function importTasksFromTakeoff(){
+  PROJECT.spools.forEach(s=>{
+    const r=calcSpool(s);
+    if(r.total>0) PROJECT.tasks.push(defaultTask(s.Tag,r.total));
+  });
+  PROJECT.specs.forEach(s=>{
+    const mh=(parseFloat(s.Quantity)||0)*(SPEC_OPS_DB[s.Operation]||0);
+    if(mh>0) PROJECT.tasks.push(defaultTask('Spec: '+s.Operation,mh));
+  });
+  saveCurrent(); buildSchedTab(); redraw(); toast('Tasks imported');
+}
+function appendTaskLine(idx){
+  const con=$('#taskContainer'); if(!con) return;
+  const t=PROJECT.tasks[idx];
+  const autoCalc=()=>{
+    const mh=parseFloat(t['Est MH'])||0, crew=parseFloat(t['Crew Size'])||1, shift=parseFloat(t['Shift Hrs'])||10;
+    const days=Math.max(1,Math.ceil(mh/(crew*shift)));
+    t['Duration (Days)']=days+'';
+    const el=line.querySelector('.dur-inp'); if(el) el.value=days;
+    const pct=parseFloat(t['% Complete'])||0;
+    t.Status=pct>=100?'Complete':pct>0?'Active':'Not Started';
+    const stEl=line.querySelector('.stat-inp'); if(stEl) stEl.value=t.Status;
+    saveCurrent(); calcMacros(); renderGantt(); redrawDash();
+  };
+  const line=h('div',{class:'line task'});
+  const mk=(lbl,key,inp)=>{const f=h('div',{class:'field'},h('label',null,lbl),inp);inp.addEventListener('input',()=>{t[key]=inp.value;autoCalc();});return f;};
+  const mhI=h('input',{type:'text',inputmode:'decimal',value:t['Est MH']});
+  const crI=h('input',{type:'text',inputmode:'decimal',value:t['Crew Size']});
+  const shI=h('input',{type:'text',inputmode:'decimal',value:t['Shift Hrs']});
+  const stI=h('input',{type:'text',inputmode:'decimal',value:t['Start Day']});
+  const durI=h('input',{type:'text',inputmode:'decimal',value:t['Duration (Days)'],class:'dur-inp'});
+  const pctI=h('input',{type:'text',inputmode:'decimal',value:t['% Complete']});
+  const statSel=h('select',{class:'stat-inp',onchange:e=>{t.Status=e.target.value;saveCurrent();}});
+  ['Not Started','Active','Complete'].forEach(s=>{const op=h('option',{value:s},s);if(s===t.Status)op.setAttribute('selected','');statSel.appendChild(op);});
+  const nameInp=h('input',{type:'text',value:t['Task Name'],oninput:e=>{t['Task Name']=e.target.value;saveCurrent();renderGantt();}});
+  const del=h('button',{class:'btn sm bad',onclick:()=>{PROJECT.tasks.splice(idx,1);saveCurrent();buildSchedTab();redraw();}},'✕');
+  [mhI,crI,shI,stI,durI,pctI].forEach(i=>i.addEventListener('input',()=>{}));
+  const grid=h('div',{class:'line-grid',style:'grid-template-columns:1fr 80px 70px 70px 70px 80px 70px 110px auto'});
+  grid.append(
+    h('div',{class:'field'},h('label',null,'Task Name'),nameInp),
+    mk('Est MH','Est MH',mhI), mk('Crew','Crew Size',crI), mk('Shift Hrs','Shift Hrs',shI),
+    mk('Start Day','Start Day',stI), mk('Duration','Duration (Days)',durI), mk('% Done','% Complete',pctI),
+    h('div',{class:'field'},h('label',null,'Status'),statSel),
+    h('div',{style:'display:flex;align-items:flex-end;padding-bottom:2px'},del)
+  );
+  line.appendChild(grid);
+  con.appendChild(line);
+}
+function renderGantt(){
+  const el=document.getElementById('ganttEl'); if(!el) return;
+  el.innerHTML='';
+  if(!PROJECT.tasks.length){el.innerHTML='<div class="empty"><b>No Tasks</b>Add tasks or import from takeoff.</div>';return;}
+  const maxDay=PROJECT.tasks.reduce((mx,t)=>Math.max(mx,(parseFloat(t['Start Day'])||0)+(parseFloat(t['Duration (Days)'])||0)),0)||30;
+  const hdr=h('div',{class:'gantt-row'});
+  hdr.append(h('div',{class:'gantt-name',style:'color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em'},'Task'));
+  const scale=h('div',{class:'gantt-bar',style:'position:relative;height:20px'});
+  for(let d=0;d<=maxDay;d+=Math.max(1,Math.round(maxDay/10))){
+    scale.appendChild(h('span',{style:`position:absolute;left:${(d/maxDay*100).toFixed(1)}%;top:2px;font-size:9px;color:var(--dim)`},'D'+d));
+  }
+  hdr.appendChild(scale); el.appendChild(hdr);
+  PROJECT.tasks.forEach(t=>{
+    const start=parseFloat(t['Start Day'])||0, dur=parseFloat(t['Duration (Days)'])||0;
+    const pct=Math.min(100,parseFloat(t['% Complete'])||0)/100;
+    const isComplete=t.Status==='Complete';
+    const row=h('div',{class:'gantt-row'});
+    row.append(h('div',{class:'gantt-name'},t['Task Name']||'—'));
+    const barWrap=h('div',{class:'gantt-bar'});
+    const bar=h('div',{class:'bar'+(isComplete?' done':''),style:`left:${(start/maxDay*100).toFixed(1)}%;width:${(dur/maxDay*100).toFixed(1)}%`});
+    const fill=h('div',{class:'fill',style:`width:${(pct*100).toFixed(0)}%`});
+    const lbl=h('div',{class:'lbl'},`${dur}d Crew:${t['Crew Size']||1} ${(pct*100).toFixed(0)}%`);
+    bar.append(fill,lbl); barWrap.appendChild(bar); row.appendChild(barWrap);
+    el.appendChild(row);
+  });
+}
+
+/* ---------- REFERENCE DB TAB ---------- */
+function buildRefTab(){
+  const pane=$('#pane-ref'); pane.innerHTML='';
+  pane.appendChild(h('div',{class:'section-head',style:'background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px'},
+    h('h3',null,'Reference Database'),
+    h('span',{class:'tagline'},'ASME B16.5 / B16.9 / B16.10 / B16.11 — offline look-up')));
+  const cats=Object.keys(DIM_DB);
+  let selCat=cats[0]; let selSub=Object.keys(DIM_DB[selCat])[0];
+  let selSize=Object.keys(DIM_DB[selCat][selSub])[0];
+  const display=h('div',{class:'report-box',style:'min-height:300px'});
+  const subSel=h('select',{style:'flex:1'});
+  const sizeSel=h('select',{style:'flex:1'});
+  const catSel=h('select',{style:'flex:1'});
+
+  const refreshDisplay=()=>{
+    const data=DIM_DB[selCat]?.[selSub]?.[selSize];
+    if(!data){display.textContent='No data';return;}
+    display.textContent=`=== ${selCat} ===\n--- ${selSub} ---\nSize: ${selSize}\n\n`+
+      Object.entries(data).map(([k,v])=>k.padEnd(28)+v).join('\n');
+  };
+  const refreshSize=()=>{
+    const sizes=Object.keys(DIM_DB[selCat]?.[selSub]||{});
+    sizeSel.innerHTML=''; sizes.forEach(s=>{const op=h('option',{value:s},s);if(s===selSize)op.setAttribute('selected','');sizeSel.appendChild(op);});
+    selSize=sizes[0]||''; refreshDisplay();
+  };
+  const refreshSub=()=>{
+    const subs=Object.keys(DIM_DB[selCat]||{});
+    subSel.innerHTML=''; subs.forEach(s=>{const op=h('option',{value:s},s);subSel.appendChild(op);});
+    selSub=subs[0]||''; refreshSize();
+  };
+  cats.forEach(c=>{const op=h('option',{value:c},c);catSel.appendChild(op);});
+  catSel.addEventListener('change',e=>{selCat=e.target.value;refreshSub();});
+  subSel.addEventListener('change',e=>{selSub=e.target.value;refreshSize();});
+  sizeSel.addEventListener('change',e=>{selSize=e.target.value;refreshDisplay();});
+
+  // Also add a quick pipe properties lookup
+  const pipeLookup=buildPipeLookup();
+  pane.append(
+    h('div',{class:'section'},
+      h('div',{class:'section-head'},h('h3',null,'Fitting & Flange Dimensions')),
+      h('div',{class:'section-body'},
+        h('div',{style:'display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap'},catSel,subSel,sizeSel),
+        display)),
+    pipeLookup
+  );
+  refreshSub();
+}
+function buildPipeLookup(){
+  const sec=h('div',{class:'section'});
+  sec.innerHTML='<div class="section-head"><h3>Pipe Properties Quick Look-Up</h3><span class="tagline">From PIPE_DB — select NPS to see all params</span></div>';
+  const body=h('div',{class:'section-body'});
+  const npsS=h('select',{style:'margin-bottom:12px'});
+  NPS_LIST.forEach(n=>{const op=h('option',{value:n},n+'"');npsS.appendChild(op);});
+  const tbl=h('div',{class:'report-box'});
+  const showPipe=nps=>{
+    const b=PIPE_DB[nps];
+    if(!b){tbl.textContent='Not found';return;}
+    const od=b[11], id_sch40=(od-2*estWall(od,'Sch 40'));
+    const paintPerLF=(Math.PI*od/12).toFixed(3);
+    const hydroPerLF=(Math.PI*Math.pow(id_sch40/2/12,2)*7.4805).toFixed(3);
+    tbl.textContent=
+      `NPS: ${nps}" \n`+
+      `OD: ${od}" \n`+
+      `Weight (Sch 40): ${b[6]} lbs/ft \n`+
+      `Lay MH/LF:  ${b[0]} \n`+
+      `Erect MH/LF: ${b[1]} \n`+
+      `Fit MH/ea:   ${b[2]} \n`+
+      `Weld MH/ea:  ${b[3]} \n`+
+      `Handle MH/ea:${b[4]} \n`+
+      `Hanger MH/ea:${b[5]} \n`+
+      `Cut MH/ea:   ${b[7]} \n`+
+      `Paint MH/LF: ${b[8]} \n`+
+      `Cut Wheels/cut:${b[9]} \n`+
+      `DI per weld: ${b[12]} \n`+
+      `Paint SF/LF: ${paintPerLF} \n`+
+      `Hydro Gal/LF (Sch 40 approx): ${hydroPerLF}`;
+  };
+  npsS.addEventListener('change',e=>showPipe(e.target.value));
+  showPipe(NPS_LIST[7]);
+  body.append(npsS, tbl); sec.appendChild(body);
+  return sec;
+}
+
+/* ---------- SKETCHPAD TAB ---------- */
+let CANVAS, CTX, ISO_MODE='Pipe (90°)', ISO_SIZE='2', ISO_COLOR='#00E5FF';
+let dragging=false, startX=0, startY=0, curX=0, curY=0, selectedId=null;
+let undoStack=[];
+function buildSketchTab(){
+  const pane=$('#pane-sketch'); pane.innerHTML='';
+  const wrap=h('div',{class:'sketch-wrap'});
+  const toolPanel=h('div',{class:'tool-panel'});
+  const canvasWrap=h('div',{class:'canvas-wrap'});
+  CANVAS=h('canvas',{id:'sketchCanvas'});
+  canvasWrap.appendChild(CANVAS);
+  const propsPanel=h('div',{class:'tool-panel'});
+
+  // Tool panel contents
+  toolPanel.innerHTML=`<h4>Pipe Size</h4>`;
+  const npsSel=h('select',{style:'width:100%;margin-bottom:8px',onchange:e=>ISO_SIZE=e.target.value});
+  NPS_LIST.forEach(n=>{const op=h('option',{value:n},n+'"');if(n==='2')op.setAttribute('selected','');npsSel.appendChild(op);});
+  toolPanel.appendChild(npsSel);
+  toolPanel.innerHTML+='<h4>Draw Tool</h4>';
+  const tools=['Select','Pipe (90°)','Pipe (45°)','Inst Tubing','Gate Valve','Globe Valve','Check Valve','Ball Valve','Control Valve','Butterfly Valve','Reducer','Weld Neck Flange','Slip-On Flange','Blind Flange','Flange Pair','Field Weld','Pipe Support','Dummy Leg','Pump','Tank','Tie-In Point','Elevation Tag','Text Label'];
+  const toolBtns=h('div',{class:'tool-row',style:'flex-direction:column;gap:4px'});
+  tools.forEach(t=>{
+    const b=h('button',{class:'tool-btn'+(t==='Pipe (90°)'?' active':''), onclick:()=>{
+      ISO_MODE=t; $$('.tool-btn').forEach(b=>b.classList.remove('active')); b.classList.add('active');
+    }},t);
+    toolBtns.appendChild(b);
+  });
+  toolPanel.appendChild(toolBtns);
+  toolPanel.innerHTML+='<h4>Color</h4>';
+  const colors={'Standard':'#00E5FF','Hot/Process':'#FF453A','Chilled/Water':'#0A84FF','Steam':'#FFFFFF','Drain/Vent':'#32D74B','Gas/Fuel':'#FFD60A','Air/Inst':'#FF9F0A'};
+  const colorRow=h('div',{class:'tool-row',style:'flex-direction:column;gap:3px'});
+  Object.entries(colors).forEach(([label,c])=>{
+    const b=h('button',{class:'tool-btn',style:`border-left:3px solid ${c}`,onclick:()=>{ISO_COLOR=c;}},label);
+    colorRow.appendChild(b);
+  });
+  toolPanel.appendChild(colorRow);
+  toolPanel.innerHTML+='<h4>Actions</h4>';
+  const acts=h('div',{class:'tool-row',style:'flex-direction:column;gap:4px'});
+  acts.append(
+    h('button',{class:'tool-btn',onclick:()=>{if(undoStack.length){const id=undoStack.pop();PROJECT.sketch.objs=PROJECT.sketch.objs.filter(o=>o.id!==id);drawSketch();saveCurrent();}}}, 'Undo (Ctrl+Z)'),
+    h('button',{class:'tool-btn',onclick:()=>{if(selectedId){PROJECT.sketch.objs=PROJECT.sketch.objs.filter(o=>o.id!==selectedId);selectedId=null;drawSketch();saveCurrent();}}}, 'Delete Selected'),
+    h('button',{class:'tool-btn',onclick:()=>{PROJECT.sketch.objs=[];undoStack=[];selectedId=null;drawSketch();saveCurrent();}}, 'Clear Board'),
+    h('button',{class:'tool-btn',onclick:genSketchBOM}, 'Generate BOM'),
+    h('button',{class:'tool-btn',onclick:exportSketchEPS}, 'Export PNG')
+  );
+  toolPanel.appendChild(acts);
+  // Props panel
+  propsPanel.innerHTML=`<h4>Properties</h4><div id="sketchProps" style="font-family:var(--mono);font-size:11px;color:var(--text-2)">Select an object to see properties.</div>`;
+  propsPanel.innerHTML+='<h4 style="margin-top:14px">BOM Preview</h4>';
+  const bomPre=h('div',{id:'sketchBOMPre',style:'font-family:var(--mono);font-size:10px;color:var(--text-2);margin-top:4px'});
+  propsPanel.appendChild(bomPre);
+  wrap.append(toolPanel, canvasWrap, propsPanel);
+  pane.appendChild(wrap);
+  setTimeout(()=>{ resizeSketchCanvas(); bindSketchEvents(); drawSketch(); },60);
+}
+function resizeSketchCanvas(){
+  if(!CANVAS) return;
+  CANVAS.width=CANVAS.offsetWidth||800; CANVAS.height=CANVAS.offsetHeight||600;
+  CTX=CANVAS.getContext('2d');
+  drawSketch();
+}
+function bindSketchEvents(){
+  if(!CANVAS) return;
+  const getXY=e=>{
+    const r=CANVAS.getBoundingClientRect();
+    if(e.touches){return{x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};}
+    return{x:e.clientX-r.left,y:e.clientY-r.top};
+  };
+  const onDown=e=>{
+    e.preventDefault();
+    const {x,y}=getXY(e);
+    startX=snap(x); startY=snap(y); curX=startX; curY=startY; dragging=true;
+    if(ISO_MODE==='Select'){
+      selectedId=null;
+      const hit=PROJECT.sketch.objs.slice().reverse().find(o=>hitTest(o,x,y));
+      if(hit){ selectedId=hit.id; showProps(hit); }
+      drawSketch(); return;
+    }
+    if(!['Pipe (90°)','Pipe (45°)','Inst Tubing'].includes(ISO_MODE)){
+      placeSymbol(startX,startY); dragging=false;
+    }
+  };
+  const onMove=e=>{
+    if(!dragging) return; e.preventDefault();
+    const {x,y}=getXY(e);
+    if(['Pipe (90°)','Pipe (45°)','Inst Tubing'].includes(ISO_MODE)){
+      let dx=x-startX, dy=y-startY;
+      if(ISO_MODE==='Pipe (90°)'){
+        if(Math.abs(dx)>Math.abs(dy)) dy=0; else dx=0;
+      } else if(ISO_MODE==='Pipe (45°)'){
+        const len=Math.hypot(dx,dy)/Math.SQRT2;
+        dx=len*Math.sign(dx); dy=len*Math.sign(dy);
+      }
+      curX=startX+dx; curY=startY+dy;
+      drawSketch();
+      // Preview line
+      CTX.save(); CTX.strokeStyle='rgba(0,229,255,.5)'; CTX.lineWidth=ISO_MODE==='Inst Tubing'?1:3;
+      CTX.setLineDash([6,4]); CTX.beginPath(); CTX.moveTo(startX,startY); CTX.lineTo(curX,curY); CTX.stroke();
+      CTX.restore();
+    }
+  };
+  const onUp=e=>{
+    if(!dragging) return; dragging=false;
+    if(['Pipe (90°)','Pipe (45°)','Inst Tubing'].includes(ISO_MODE)){
+      const len=Math.hypot(curX-startX,curY-startY);
+      if(len<10) return;
+      const id=uid(); const px2ft=40;
+      const obj={id,type:'Pipe',pipeType:ISO_MODE==='Inst Tubing'?'Inst':'Process',
+        x1:startX,y1:startY,x2:curX,y2:curY,length:len/px2ft,
+        size:ISO_SIZE,color:ISO_COLOR,tag:'P-'+PROJECT.sketch.objs.filter(o=>o.type==='Pipe').length.toString().padStart(3,'0')};
+      PROJECT.sketch.objs.push(obj); undoStack.push(id); drawSketch(); saveCurrent();
+    }
+  };
+  CANVAS.addEventListener('mousedown',onDown);
+  CANVAS.addEventListener('mousemove',onMove);
+  CANVAS.addEventListener('mouseup',onUp);
+  CANVAS.addEventListener('touchstart',onDown,{passive:false});
+  CANVAS.addEventListener('touchmove',onMove,{passive:false});
+  CANVAS.addEventListener('touchend',onUp,{passive:false});
+  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();if(undoStack.length){const id=undoStack.pop();PROJECT.sketch.objs=PROJECT.sketch.objs.filter(o=>o.id!==id);drawSketch();saveCurrent();}}});
+}
+function snap(v,grid=20){return Math.round(v/grid)*grid;}
+function hitTest(o,x,y){
+  if(o.type==='Pipe'){
+    const dx=o.x2-o.x1,dy=o.y2-o.y1;
+    const t=Math.max(0,Math.min(1,((x-o.x1)*dx+(y-o.y1)*dy)/(dx*dx+dy*dy)));
+    const nx=o.x1+t*dx,ny=o.y1+t*dy;
+    return Math.hypot(x-nx,y-ny)<14;
+  }
+  return Math.hypot(x-(o.x||o.x1||0),y-(o.y||o.y1||0))<18;
+}
+function showProps(o){
+  const el=document.getElementById('sketchProps'); if(!el) return;
+  if(o.type==='Pipe') el.textContent=`ID: ${o.id.slice(-6)}\nType: ${o.pipeType}\nNPS: ${o.size}"\nLength: ${o.length.toFixed(2)} ft\nColor: ${o.color}`;
+  else el.textContent=`ID: ${o.id.slice(-6)}\nType: ${o.type}\nNPS: ${o.size||'—'}\nX: ${(o.x||0).toFixed(0)} Y: ${(o.y||0).toFixed(0)}`;
+}
+function placeSymbol(x,y){
+  const id=uid();
+  const type=ISO_MODE.replace(/\(.*\)/,'').trim();
+  const obj={id,type,x,y,rot:0,size:ISO_SIZE,color:ISO_COLOR,text:type==='Text Label'?'Label':type==='Tie-In Point'?'TP':''};
+  PROJECT.sketch.objs.push(obj); undoStack.push(id); selectedId=id; drawSketch(); saveCurrent(); showProps(obj);
+}
+function drawSketch(){
+  if(!CTX||!CANVAS) return;
+  const W=CANVAS.width,H=CANVAS.height;
+  CTX.fillStyle='#0F0F11'; CTX.fillRect(0,0,W,H);
+  // Grid
+  CTX.strokeStyle='rgba(44,44,46,0.9)'; CTX.lineWidth=.5;
+  for(let x=0;x<W;x+=20){CTX.beginPath();CTX.moveTo(x,0);CTX.lineTo(x,H);CTX.stroke();}
+  for(let y=0;y<H;y+=20){CTX.beginPath();CTX.moveTo(0,y);CTX.lineTo(W,y);CTX.stroke();}
+  // Isometric guide lines (30°)
+  CTX.strokeStyle='rgba(0,229,255,0.04)'; CTX.lineWidth=.5;
+  const tan30=Math.tan(Math.PI/6);
+  for(let y=-H;y<H*2;y+=40){CTX.beginPath();CTX.moveTo(0,y);CTX.lineTo(W,y+W*tan30);CTX.stroke();CTX.beginPath();CTX.moveTo(0,y);CTX.lineTo(W,y-W*tan30);CTX.stroke();}
+  // Objects
+  PROJECT.sketch.objs.forEach(o=>{
+    const sel=(o.id===selectedId);
+    CTX.strokeStyle=sel?'#fff':o.color||'#00E5FF';
+    CTX.fillStyle=sel?'rgba(255,255,255,.15)':'rgba(0,0,0,.6)';
+    CTX.lineWidth=sel?4:2.5;
+    drawObj(o);
+  });
+  // Snap nodes
+  CTX.fillStyle='rgba(0,229,255,.4)';
+  PROJECT.sketch.objs.filter(o=>o.type==='Pipe').forEach(o=>{
+    [[o.x1,o.y1],[o.x2,o.y2]].forEach(([x,y])=>{CTX.beginPath();CTX.arc(x,y,5,0,Math.PI*2);CTX.fill();});
+  });
+}
+function rot(cx,cy,pts,deg){
+  const rad=deg*Math.PI/180, cos=Math.cos(rad), sin=Math.sin(rad), out=[];
+  for(let i=0;i<pts.length;i+=2){const x=pts[i]-cx,y=pts[i+1]-cy;out.push(x*cos-y*sin+cx,x*sin+y*cos+cy);}
+  return out;
+}
+function drawObj(o){
+  const c=CTX; const x=o.x||0,y=o.y||0,r=o.rot||0;
+  if(o.type==='Pipe'){
+    c.beginPath(); c.moveTo(o.x1,o.y1); c.lineTo(o.x2,o.y2);
+    c.lineWidth=o.pipeType==='Inst'?1.5:3; c.stroke();
+    if(o.length){
+      const mx=(o.x1+o.x2)/2,my=(o.y1+o.y2)/2;
+      const ang=Math.atan2(o.y2-o.y1,o.x2-o.x1)*180/Math.PI;
+      c.save(); c.translate(mx,my); c.rotate((ang>90||ang<-90?ang+180:ang)*Math.PI/180);
+      c.fillStyle=o.color||'#00E5FF'; c.font='bold 10px monospace'; c.textAlign='center';
+      c.fillText(toArch(o.length),0,-5); c.restore();
+    }
+    if(o.tag){c.fillStyle='rgba(255,255,255,.6)';c.font='9px monospace';c.fillText(o.tag,(o.x1+o.x2)/2,(o.y1+o.y2)/2+12);}
+    return;
+  }
+  c.save(); c.translate(x,y); c.rotate(r*Math.PI/180);
+  const t=o.type;
+  if(/Valve|Butterfly/.test(t)){
+    c.beginPath(); c.moveTo(-14,-10); c.lineTo(-14,10); c.lineTo(14,-10); c.lineTo(14,10); c.closePath(); c.stroke(); c.fill();
+    if(/Control/.test(t)){c.beginPath();c.moveTo(0,0);c.lineTo(0,-16);c.arc(0,-20,4,0,Math.PI*2);c.stroke();}
+    if(/Check/.test(t)){c.beginPath();c.moveTo(-14,0);c.lineTo(14,0);c.moveTo(0,-10);c.lineTo(0,10);c.stroke();}
+  } else if(/Weld Neck|Slip-On|Blind|Flange Pair/.test(t)){
+    c.lineWidth=4; c.beginPath(); c.moveTo(0,-16); c.lineTo(0,16); c.stroke();
+    if(/Pair/.test(t)){c.beginPath();c.moveTo(4,-16);c.lineTo(4,16);c.stroke();}
+  } else if(/Reducer/.test(t)){
+    c.beginPath(); c.moveTo(-12,-10); c.lineTo(-12,10); c.lineTo(12,0); c.closePath(); c.stroke(); c.fill();
+  } else if(/Field Weld/.test(t)){
+    c.beginPath(); c.arc(0,0,6,0,Math.PI*2); c.fillStyle=o.color||'#00E5FF'; c.fill();
+  } else if(/Pipe Support/.test(t)){
+    c.beginPath(); c.arc(0,-5,10,Math.PI,0); c.lineTo(0,10); c.moveTo(-14,10); c.lineTo(14,10); c.stroke();
+  } else if(/Dummy Leg/.test(t)){
+    c.lineWidth=5; c.beginPath(); c.moveTo(0,0); c.lineTo(0,30); c.stroke(); c.lineWidth=8; c.beginPath(); c.moveTo(-12,30); c.lineTo(12,30); c.stroke();
+  } else if(/Pump/.test(t)){
+    c.beginPath(); c.arc(0,0,14,0,Math.PI*2); c.stroke(); c.fill();
+    c.beginPath(); c.moveTo(-18,0); c.lineTo(-5,0); c.moveTo(5,-10); c.lineTo(0,0); c.lineTo(5,10); c.stroke();
+  } else if(/Tank/.test(t)){
+    c.beginPath(); c.ellipse(0,-22,18,8,0,0,Math.PI*2); c.stroke(); c.fill();
+    c.beginPath(); c.ellipse(0,22,18,8,0,0,Math.PI*2); c.stroke(); c.fill();
+    c.beginPath(); c.moveTo(-18,-22); c.lineTo(-18,22); c.moveTo(18,-22); c.lineTo(18,22); c.stroke();
+  } else if(/Tie-In/.test(t)){
+    c.beginPath(); c.moveTo(-14,-10); c.lineTo(14,-10); c.lineTo(20,0); c.lineTo(14,10); c.lineTo(-14,10); c.lineTo(-20,0); c.closePath(); c.stroke(); c.fill();
+    c.fillStyle='#fff'; c.font='bold 9px monospace'; c.textAlign='center'; c.fillText('TP',0,3);
+  } else if(/Elevation/.test(t)){
+    c.strokeStyle='rgba(255,255,255,.5)'; c.lineWidth=1; c.setLineDash([3,3]);
+    c.beginPath(); c.moveTo(0,0); c.lineTo(40,0); c.stroke(); c.setLineDash([]);
+    c.fillStyle='#FFD60A'; c.font='bold 10px monospace'; c.fillText(o.text||'EL+0',20,-4);
+  } else if(/Text/.test(t)){
+    c.fillStyle=o.color||'#fff'; c.font='bold 12px monospace'; c.fillText(o.text||'Text',0,0);
+  }
+  c.restore();
+}
+function genSketchBOM(){
+  const pipes=PROJECT.sketch.objs.filter(o=>o.type==='Pipe');
+  const bySize={};
+  pipes.forEach(p=>{bySize[p.size]=(bySize[p.size]||0)+p.length;});
+  const syms={};
+  PROJECT.sketch.objs.filter(o=>o.type!=='Pipe').forEach(o=>{
+    const k=(o.size?o.size+'\"':'')+' '+o.type; syms[k]=(syms[k]||0)+1;
+  });
+  let txt='=== VDC SKETCH BOM ===\n\nLINEAR FEET:\n';
+  Object.entries(bySize).forEach(([s,ft])=>txt+=`  NPS ${s}\"  ${toArch(ft)} (${ft.toFixed(2)} ft)\n`);
+  txt+='\nCOMPONENTS:\n';
+  Object.entries(syms).forEach(([k,n])=>txt+=`  ${k.padEnd(36)} ${n} EA\n`);
+  const el=document.getElementById('sketchBOMPre'); if(el) el.textContent=txt;
+  toast('Sketch BOM generated — see right panel');
+}
+function exportSketchEPS(){
+  if(!CANVAS) return;
+  const link=h('a',{href:CANVAS.toDataURL('image/png'),download:'sketch.png'});
+  link.click();
+}
+
+/* ---------- MASTER BOM TAB ---------- */
+function buildBOMTab(){
+  const pane=$('#pane-bom'); pane.innerHTML='';
+  pane.append(
+    h('div',{class:'section-head',style:'background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px'},
+      h('h3',null,'Master Procurement BOM'),
+      h('div',{style:'display:flex;gap:6px;flex-wrap:wrap'},
+        h('button',{class:'btn neon',onclick:renderBOM},'COMPILE BOM'),
+        h('button',{class:'btn sm',onclick:()=>exportCSV('bom')},'CSV ↓')
+      )),
+    h('div',{class:'report-box',id:'bomOutput',style:'min-height:400px'}, 'Press COMPILE BOM to generate.')
+  );
+}
+function renderBOM(){
+  const pipeMap={}, fitMap={}, hangMap={};
+  PROJECT.spools.forEach(s=>{
+    const sch=s.Schedule,conn=s.Connection,nps=s.NPS;
+    const bom=Array.isArray(s.bom)&&s.bom.length?s.bom:null;
+    if(bom){
+      bom.forEach(item=>{
+        const sz=String(item.size||nps).replace(/"/g,'').trim();
+        const q=parseFloat(item.qty)||0; if(!q) return;
+        if(/Bare Pipe/i.test(item.type)){const k=`${sz}" ${sch} Bare Pipe`;pipeMap[k]=(pipeMap[k]||0)+q;}
+        else{const k=`${sz}" ${sch} ${conn} ${item.type}`;fitMap[k]=(fitMap[k]||0)+q;}
+      });
+    } else {
+      const lf=parseFloat(s.LF)||0, fq=parseFloat(s['Qty Fit'])||0;
+      if(lf){const k=`${nps}" ${sch} Bare Pipe`;pipeMap[k]=(pipeMap[k]||0)+lf;}
+      if(fq){const k=`${nps}" ${sch} ${conn} Misc Fitting`;fitMap[k]=(fitMap[k]||0)+fq;}
+    }
+    const hq=parseFloat(s['Qty Hang'])||0, ht=s['Hang Type'];
+    if(hq&&ht&&ht!=='None'){const k=`${nps}" ${ht}`;hangMap[k]=(hangMap[k]||0)+hq;}
+  });
+  // Also add from sketch BOM
+  PROJECT.sketch.objs.filter(o=>o.type==='Pipe').forEach(o=>{
+    const k=`${o.size||'2'}" SKETCH Bare Pipe`;pipeMap[k]=(pipeMap[k]||0)+(o.length||0);
+  });
+  let txt='═══════════════════════════════════════════════════════════\n';
+  txt+='               MASTER PROCUREMENT BOM\n';
+  txt+='═══════════════════════════════════════════════════════════\n\n';
+  txt+='── RAW PIPE ─────────────────────────────────────────────\n';
+  Object.entries(pipeMap).sort().forEach(([k,v])=>txt+=`  ${k.padEnd(50)} ${v.toFixed(1).padStart(8)} LF\n`);
+  const totalLF=Object.values(pipeMap).reduce((a,b)=>a+b,0);
+  txt+=`${'  TOTAL'.padEnd(52)} ${totalLF.toFixed(1).padStart(8)} LF\n\n`;
+  txt+='── FITTINGS & FLANGES ──────────────────────────────────\n';
+  Object.entries(fitMap).sort().forEach(([k,v])=>txt+=`  ${k.padEnd(50)} ${Math.round(v).toString().padStart(8)} EA\n`);
+  txt+='\n── PIPE SUPPORTS & HANGERS ─────────────────────────────\n';
+  Object.entries(hangMap).sort().forEach(([k,v])=>txt+=`  ${k.padEnd(50)} ${Math.round(v).toString().padStart(8)} EA\n`);
+  txt+='\n── SUMMARY QUANTITIES ──────────────────────────────────\n';
+  const R=rollUp();
+  txt+=`  Total LF:             ${R.totalLF.toFixed(1).padStart(12)}\n`;
+  txt+=`  Est. Total Weight:    ${R.totalWt.toFixed(0).padStart(12)} lbs\n`;
+  txt+=`  Hydro Volume:         ${R.totalHydro.toFixed(0).padStart(12)} gal\n`;
+  txt+=`  Paint Surface:        ${R.totalPaint.toFixed(0).padStart(12)} SF\n`;
+  txt+=`  Total Weld Joints:    ${R.totalJoins.toFixed(0).padStart(12)}\n`;
+  txt+=`  NDT Joints (${PROJECT.rates.ndtPct||10}%):  ${R.ndtCount.toString().padStart(12)}\n`;
+  txt+=`  Total DI:             ${R.totalDI.toFixed(1).padStart(12)}\n`;
+  const el=document.getElementById('bomOutput'); if(el) el.textContent=txt;
+}
+
+/* ---------- FINANCIALS TAB ---------- */
+function buildFinanceTab(){
+  const pane=$('#pane-finance'); pane.innerHTML='';
+  pane.append(
+    h('div',{class:'section-head',style:'background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px'},
+      h('h3',null,'Bid Financials & Report'),
+      h('div',{style:'display:flex;gap:6px;flex-wrap:wrap'},
+        h('button',{class:'btn neon',onclick:renderFinance},'GENERATE REPORT'),
+        h('button',{class:'btn sm',onclick:()=>exportCSV('finance')},'CSV ↓'),
+        h('button',{class:'btn sm',onclick:()=>window.print()},'🖨 PRINT')
+      )),
+    h('div',{class:'report-box',id:'financeOutput',style:'min-height:500px'},'Press GENERATE REPORT.')
+  );
+}
+function renderFinance(){
+  const R=rollUp(); const m=PROJECT.meta; const r=PROJECT.rates;
+  const now=new Date().toLocaleDateString();
+  let txt='';
+  txt+='╔════════════════════════════════════════════════════════════╗\n';
+  txt+='║           TINGLE ESTIMATOR — BID PROPOSAL                 ║\n';
+  txt+='╚════════════════════════════════════════════════════════════╝\n\n';
+  txt+=`Project:           ${m.name||'—'}\n`;
+  txt+=`Client / Owner:    ${m.client||'—'}\n`;
+  txt+=`Location:          ${m.location||'—'}\n`;
+  txt+=`Estimator:         ${m.estimator||'—'}\n`;
+  txt+=`Bid #:             ${m.bidNumber||'—'}   Rev: ${m.revision||'A'}\n`;
+  txt+=`Date:              ${now}\n`;
+  txt+=`Bid Due:           ${m.bidDue||'—'}\n\n`;
+  txt+='─────────────── EXECUTIVE SUMMARY ─────────────────────\n';
+  txt+=`  TOTAL QUOTE:            ${fmt$(R.total).padStart(18)}\n`;
+  txt+=`  Adjusted Man-Hours:     ${fmt1(R.adjMH).padStart(18)}\n`;
+  txt+=`  Cost Per Man-Hour:      ${fmt$(R.costPerMH).padStart(18)}\n`;
+  txt+=`  Jobsite Efficiency:     ${(R.eff*100).toFixed(1).padStart(17)}%\n\n`;
+  txt+='─────────────── DIRECT COST BREAKDOWN ─────────────────\n';
+  txt+=`  Labor (${fmt1(R.adjMH)} adj MH × $${num(r.laborRate,65).toFixed(2)}/hr):${fmt$(R.laborCost).padStart(16)}\n`;
+  txt+=`  Per Diem (${R.manDays} man-days × $${num(r.perDiem,150).toFixed(2)}):${fmt$(R.perDiemCost).padStart(12)}\n`;
+  txt+=`  Equipment & Rentals:    ${fmt$(R.equipCost).padStart(18)}\n`;
+  txt+=`  Consumables:            ${fmt$(R.consCost).padStart(18)}\n`;
+  txt+=`  Subcontractors:         ${fmt$(R.subCost).padStart(18)}\n`;
+  txt+=`  NDT (${R.ndtCount} joints × $${num(r.ndtShot,150).toFixed(0)}): ${fmt$(R.ndtCost).padStart(16)}\n`;
+  txt+=`  Sales Tax (${num(r.salesTax,8.5).toFixed(1)}%):        ${fmt$(R.tax).padStart(18)}\n`;
+  txt+=`                          ──────────────────\n`;
+  txt+=`  Directs Total:          ${fmt$(R.directs).padStart(18)}\n\n`;
+  txt+='─────────────── BURDEN & MARKUP ───────────────────────\n';
+  txt+=`  Overhead (${num(r.overhead,8).toFixed(1)}%):          ${fmt$(R.overhead).padStart(18)}\n`;
+  txt+=`  Bond + Insurance (${num(r.bondInsurance,1.5).toFixed(1)}%): ${fmt$(R.bond).padStart(18)}\n`;
+  txt+=`  Subtotal:               ${fmt$(R.subtotal).padStart(18)}\n`;
+  txt+=`  Profit (${num(r.profit,15).toFixed(1)}%):            ${fmt$(R.total-R.subtotal).padStart(18)}\n\n`;
+  txt+='═══════════════════════════════════════════════════════\n';
+  txt+=`  TOTAL BID:              ${fmt$(R.total).padStart(18)}\n`;
+  txt+='═══════════════════════════════════════════════════════\n\n';
+  txt+='─────────────── SCHEDULE SUMMARY ──────────────────────\n';
+  txt+=`  Outage Duration:        ${R.maxDay} Days\n`;
+  txt+=`  Peak Crew:              ${R.peakMP} Workers\n`;
+  txt+=`  Man-Days:               ${R.manDays}\n\n`;
+  txt+='─────────────── QUANTITY SUMMARY ──────────────────────\n';
+  txt+=`  Pipe Installed:         ${R.totalLF.toFixed(0)} LF\n`;
+  txt+=`  Total Weight:           ${R.totalWt.toFixed(0)} lbs\n`;
+  txt+=`  Paint Surface:          ${R.totalPaint.toFixed(0)} SF\n`;
+  txt+=`  Hydrotest Volume:       ${R.totalHydro.toFixed(0)} gallons\n`;
+  txt+=`  Total Weld Joints:      ${R.totalJoins.toFixed(0)}\n`;
+  txt+=`  NDT Joints:             ${R.ndtCount}\n`;
+  txt+=`  DI (Difficulty Index):  ${R.totalDI.toFixed(1)}\n\n`;
+  txt+='─────────────── SPOOL DETAIL ───────────────────────────\n';
+  txt+=`  ${'Tag'.padEnd(16)} ${'NPS'.padEnd(6)} ${'LF'.padEnd(8)} ${'MH'.padEnd(8)} ${'DI'.padEnd(8)} Joints\n`;
+  txt+=`  ${'─'.repeat(58)}\n`;
+  PROJECT.spools.forEach((s,i)=>{
+    const r2=R.spools[i];
+    txt+=`  ${(s.Tag||'—').padEnd(16)} ${(s.NPS+'"').padEnd(6)} ${(parseFloat(s.LF)||0).toFixed(1).padStart(7)} ${r2.total.toFixed(1).padStart(7)} ${r2.di.toFixed(1).padStart(7)} ${r2.joinCnt.toFixed(0).padStart(6)}\n`;
+  });
+  const el=document.getElementById('financeOutput'); if(el) el.textContent=txt;
+}
+
+/* ---------- NOTES TAB ---------- */
+function buildNotesTab(){
+  const pane=$('#pane-notes'); pane.innerHTML='';
+  pane.append(
+    h('div',{class:'section-head',style:'background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px'},h('h3',null,'Notes, RFIs & Revisions')),
+    h('div',{class:'section-body',style:'background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px'},
+      h('textarea',{style:'width:100%;min-height:520px;background:var(--bg);color:var(--text)',value:PROJECT.meta.notes||'',placeholder:'Scope clarifications, RFIs, revision history, site conditions…',oninput:e=>{PROJECT.meta.notes=e.target.value;saveCurrent();}},PROJECT.meta.notes||'')
+    )
+  );
+}
+
+/* =========================================================================
+ *  SECTION 7 — LIVE DASHBOARD REDRAW
+ * ===================================================================== */
+function redrawDash(){
+  try{
+    const R=rollUp();
+    const eff=(R.eff*100).toFixed(1);
+    document.getElementById('kQuote').textContent=fmt$(R.total);
+    document.getElementById('kMH').textContent=fmt1(R.adjMH);
+    document.getElementById('kCPM').textContent=fmt$(R.costPerMH);
+    document.getElementById('kDI').textContent=fmt1(R.totalDI);
+    document.getElementById('kSched').textContent=R.maxDay+'d';
+    document.getElementById('kPeak').textContent=R.peakMP;
+    document.getElementById('kEff').textContent=eff+'%';
+    document.getElementById('kEff').style.color=R.eff>=.75?'var(--green)':R.eff>=.6?'var(--yellow)':'var(--red)';
+    // Efficiency summary on project tab
+    const es=document.getElementById('effSummary');
+    if(es) es.textContent='Overall Efficiency: '+eff+'%  (Adj Factor: '+R.eff.toFixed(3)+')';
+  }catch(e){}
+}
+function redraw(){ saveCurrent(); redrawDash(); }
+
+/* =========================================================================
+ *  SECTION 8 — SAVE / LOAD / EXPORT
+ * ===================================================================== */
+document.getElementById('btnSave').onclick=()=>{
+  const name=PROJECT.meta.name||'Untitled';
+  const map=listSaved(); map[PROJECT.id]=clone(PROJECT);
+  persistSaved(map); saveCurrent(); toast('Saved: '+name);
+};
+document.getElementById('btnLoad').onclick=()=>{
+  const map=listSaved(); const keys=Object.keys(map);
+  if(!keys.length){toast('No saved projects',true);return;}
+  const body=h('div');
+  keys.forEach(k=>{
+    const p=map[k];
+    const btn=h('button',{class:'btn',style:'display:block;width:100%;margin-bottom:8px;text-align:left',onclick:()=>{
+      PROJECT=clone(p); saveCurrent(); rebuild(); closeModal(); toast('Loaded: '+PROJECT.meta.name);
+    }},`${p.meta?.name||'Untitled'} — Rev ${p.meta?.revision||'A'} — ${Object.keys(p.spools||{}).length||0} spools`);
+    body.appendChild(btn);
+  });
+  openModal('Load Project',body,null);
+};
+document.getElementById('btnNew').onclick=()=>{
+  if(!confirm('Start new project? Unsaved changes will be lost.')) return;
+  PROJECT=emptyProject(); saveCurrent(); rebuild(); toast('New project created');
+};
+document.getElementById('btnExportJSON').onclick=()=>{
+  const json=JSON.stringify(PROJECT,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=h('a',{href:url,download:(PROJECT.meta.name||'estimate').replace(/\s+/g,'_')+'.json'});
+  a.click(); URL.revokeObjectURL(url); toast('Exported JSON');
+};
+document.getElementById('btnImportJSON').onclick=()=>document.getElementById('fileImport').click();
+document.getElementById('fileImport').onchange=e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      PROJECT=JSON.parse(ev.target.result);
+      if(!PROJECT.spools) PROJECT.spools=[];
+      if(!PROJECT.specs) PROJECT.specs=[];
+      if(!PROJECT.cons) PROJECT.cons=[];
+      if(!PROJECT.equips) PROJECT.equips=[];
+      if(!PROJECT.subs) PROJECT.subs=[];
+      if(!PROJECT.tasks) PROJECT.tasks=[];
+      if(!PROJECT.sketch) PROJECT.sketch={objs:[],nextId:0};
+      if(!PROJECT.meta) PROJECT.meta={};
+      if(!PROJECT.rates) PROJECT.rates={};
+      if(!PROJECT.efficiency) PROJECT.efficiency={economy:85,supervision:90,labor:80,conditions:75,weather:80,equipment:85};
+      saveCurrent(); rebuild(); toast('Project imported: '+(PROJECT.meta.name||'Untitled'));
+    }catch(ex){toast('Import failed — invalid file',true);}
+  };
+  reader.readAsText(file);
+  e.target.value='';
+};
+document.getElementById('btnHelp').onclick=()=>{
+  const body=h('div',{style:'font-size:13px;line-height:1.7;color:var(--text-2)'}); 
+  body.innerHTML=`<b class="pill">Offline App</b><p>This file works 100% offline — no internet connection required at any time.</p>
+<b class="pill">PC (Windows / Mac / Linux)</b><p>Open <code>pipe_estimator.html</code> in any browser (Chrome, Edge, Firefox). For a true .exe, run the included <code>build_exe.bat</code> — it uses PyWebView + PyInstaller to wrap this file.</p>
+<b class="pill">Android</b><p>Copy <code>pipe_estimator.html</code> to your device. Open in Chrome → tap ⋮ → "Add to Home screen" to install as a PWA (offline app). For a true .apk, use the included <code>BUILD_ANDROID.md</code> instructions (PWA Builder or Bubblewrap — no coding required).</p>
+<b class="pill">Man-Hour Basis</b><p>Calculations are based on J.S. Page "Estimator's Piping Man-Hour Manual 5th Edition" PIPE_DB. All 6 efficiency factors are applied per Chapter Introduction. Material factors from Section 9.</p>
+<b class="pill">Data Persistence</b><p>Auto-saved to browser localStorage on every keystroke. Use SAVE to persist multiple named projects. EXPORT/IMPORT JSON to transfer between devices.</p>
+<b class="pill">Keyboard Shortcuts</b><p>Sketchpad: Ctrl+Z = Undo. Delete = Delete selected object.</p>`;
+  openModal('Help & Documentation',body,null);
+};
+
+/* =========================================================================
+ *  SECTION 9 — CSV EXPORT HELPERS
+ * ===================================================================== */
+function exportCSV(type){
+  let csv='', fn='export.csv';
+  if(type==='takeoff'){
+    fn=(PROJECT.meta.name||'estimate').replace(/\s+/g,'_')+'_takeoff.csv';
+    csv='Tag,NPS,Schedule,Connection,Material,LF,Qty Fit,Qty Join,Weld Type,Hang Qty,Hang Type,Total MH,DI,Joints,Weight(lbs)\n';
+    PROJECT.spools.forEach(s=>{const r=calcSpool(s);csv+=`"${s.Tag}","${s.NPS}","${s.Schedule}","${s.Connection}","${s.Material||'CS'}",${parseFloat(s.LF)||0},${parseFloat(s['Qty Fit'])||0},${parseFloat(s['Qty Join'])||0},"${s['Weld Type']}",${parseFloat(s['Qty Hang'])||0},"${s['Hang Type']}",${r.total.toFixed(2)},${r.di.toFixed(2)},${r.joinCnt.toFixed(0)},${r.wtLbs.toFixed(0)}\n`;});
+  } else if(type==='bom'){
+    fn=(PROJECT.meta.name||'estimate').replace(/\s+/g,'_')+'_bom.csv';
+    csv='Description,Qty,Unit\n';
+    const pipeMap={},fitMap={},hangMap={};
+    PROJECT.spools.forEach(s=>{
+      const bom=Array.isArray(s.bom)&&s.bom.length?s.bom:null;
+      const nps=s.NPS,sch=s.Schedule,conn=s.Connection;
+      if(bom){bom.forEach(item=>{const sz=String(item.size||nps).replace(/"/g,'').trim(),q=parseFloat(item.qty)||0;if(!q)return;if(/Bare Pipe/i.test(item.type)){const k=`${sz}" ${sch} Bare Pipe`;pipeMap[k]=(pipeMap[k]||0)+q;}else{const k=`${sz}" ${sch} ${conn} ${item.type}`;fitMap[k]=(fitMap[k]||0)+q;}});}
+      else{const lf=parseFloat(s.LF)||0,fq=parseFloat(s['Qty Fit'])||0;if(lf){const k=`${nps}" ${sch} Bare Pipe`;pipeMap[k]=(pipeMap[k]||0)+lf;}if(fq){const k=`${nps}" ${sch} ${conn} Misc`;fitMap[k]=(fitMap[k]||0)+fq;}}
+      const hq=parseFloat(s['Qty Hang'])||0,ht=s['Hang Type'];if(hq&&ht&&ht!=='None'){const k=`${nps}" ${ht}`;hangMap[k]=(hangMap[k]||0)+hq;}
+    });
+    Object.entries(pipeMap).sort().forEach(([k,v])=>csv+=`"${k}",${v.toFixed(1)},LF\n`);
+    Object.entries(fitMap).sort().forEach(([k,v])=>csv+=`"${k}",${Math.round(v)},EA\n`);
+    Object.entries(hangMap).sort().forEach(([k,v])=>csv+=`"${k}",${Math.round(v)},EA\n`);
+  } else if(type==='finance'){
+    fn=(PROJECT.meta.name||'estimate').replace(/\s+/g,'_')+'_financials.csv';
+    const R=rollUp();
+    csv='Item,Value\n';
+    csv+=`"Total Bid",${R.total.toFixed(2)}\n"Adj Man-Hours",${R.adjMH.toFixed(2)}\n"Labor Cost",${R.laborCost.toFixed(2)}\n"Per Diem",${R.perDiemCost.toFixed(2)}\n"Equipment",${R.equipCost.toFixed(2)}\n"Consumables",${R.consCost.toFixed(2)}\n"Subcontractors",${R.subCost.toFixed(2)}\n"NDT Cost",${R.ndtCost.toFixed(2)}\n"Sales Tax",${R.tax.toFixed(2)}\n"Overhead",${R.overhead.toFixed(2)}\n"Bond+Ins",${R.bond.toFixed(2)}\n"Profit",${(R.total-R.subtotal).toFixed(2)}\n`;
+  } else if(type==='sched'){
+    fn=(PROJECT.meta.name||'estimate').replace(/\s+/g,'_')+'_schedule.csv';
+    csv='Task,Est MH,Crew,Shift Hrs,Start Day,Duration,% Complete,Status\n';
+    PROJECT.tasks.forEach(t=>csv+=`"${t['Task Name']}",${t['Est MH']||0},${t['Crew Size']||1},${t['Shift Hrs']||10},${t['Start Day']||1},${t['Duration (Days)']||1},${t['% Complete']||0},"${t.Status||'Not Started'}"\n`);
+  }
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=h('a',{href:url,download:fn}); a.click(); URL.revokeObjectURL(url);
+  toast('CSV exported');
+}
+
+/* =========================================================================
+ *  SECTION 10 — BOOT
+ * ===================================================================== */
+function rebuild(){
+  buildTabs();
+  buildPanes();
+  redraw();
+}
+function init(){
+  buildTabs();
+  buildPanes();
+  redrawDash();
+  // Nav click rebuilding
+  $$('#tabNav button').forEach((b,i)=>{
+    b.addEventListener('click',()=>{ switchTab(TABS[i].id); buildTabs(); });
+  });
+}
+window.addEventListener('resize', ()=>{ if(CANVAS) resizeSketchCanvas(); });
+window.addEventListener('load', init);
+
+/* Register PWA service worker for offline caching */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
