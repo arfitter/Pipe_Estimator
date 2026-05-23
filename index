@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#0a0a0a"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>Tingle Pipe Estimator</title>
+<style>
+:root{--bg:#0a0a0a;--s1:#111;--s2:#1c1c1e;--s3:#2c2c2e;--bdr:#2c2c2e;--bdr2:#3a3a3c;--txt:#fff;--txt2:#c7c7cc;--muted:#8e8e93;--dim:#48484a;--neon:#00e5ff;--neons:rgba(0,229,255,.12);--blue:#0a84ff;--green:#32d74b;--red:#ff453a;--orange:#ff9f0a;--yellow:#ffd60a;--purple:#bf5af2;--teal:#30d158;--tap:52px;--r:12px;--ui:-apple-system,"Segoe UI",Arial,sans-serif;--mono:"Cascadia Code","Consolas",monospace}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{min-height:100dvh;background:var(--bg);color:var(--txt);font:14px/1.45 var(--ui);overscroll-behavior:none}
+body{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
+#hdr{position:sticky;top:0;z-index:80;display:flex;align-items:center;justify-content:space-between;padding:9px 14px;padding-top:calc(8px + env(safe-area-inset-top));background:rgba(10,10,10,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr)}
+.brand{font:900 14px var(--ui);letter-spacing:-.3px}.brand small{display:block;font:600 9px var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:1px}
+#kbar{display:flex;overflow-x:auto;background:var(--s1);border-bottom:1px solid var(--bdr);scrollbar-width:none}
+#kbar::-webkit-scrollbar{display:none}
+.kchip{flex-shrink:0;min-width:82px;border-right:1px solid var(--bdr);padding:5px 9px}
+.kchip .kl{font:700 7px var(--ui);letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.kchip .kv{font:800 13px var(--mono);margin-top:1px;letter-spacing:-.4px;white-space:nowrap}
+#bnav{position:fixed;bottom:0;left:0;right:0;z-index:80;display:flex;overflow-x:auto;scrollbar-width:none;background:rgba(10,10,10,.96);backdrop-filter:blur(20px);border-top:1px solid var(--bdr);padding-bottom:env(safe-area-inset-bottom)}
+#bnav::-webkit-scrollbar{display:none}
+.nt{flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:60px;min-height:54px;padding:4px 6px;background:transparent;border:none;color:var(--muted);cursor:pointer;gap:2px;font-family:var(--ui)}
+.nt .ni{font-size:17px;line-height:1}.nt .nl{font:700 8px var(--ui);letter-spacing:.04em;text-transform:uppercase}
+.nt.on{color:var(--neon)}
+/* PANES - critical: none visible except .on */
+.pane{display:none !important}
+.pane.on{display:block !important;padding:10px 12px 10px;min-height:calc(100dvh - 180px)}
+/* CARDS */
+.card,.sec{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+.ch,.sec-h{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--s2);border-bottom:1px solid var(--bdr);gap:8px;flex-wrap:wrap}
+.ch h3,.sec-h h3{font:800 10px var(--ui);letter-spacing:.14em;text-transform:uppercase}
+.cb,.sec-b{padding:11px 14px}
+.fld{display:flex;flex-direction:column;gap:4px;margin-bottom:9px}
+.fld label{font:800 9px var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+input[type=text],input[type=date],select,textarea{appearance:none;-webkit-appearance:none;background:var(--bg);color:var(--txt);border:1px solid var(--bdr2);border-radius:9px;padding:0 13px;min-height:var(--tap);font:600 14px var(--mono);width:100%;outline:none;min-width:0}
+textarea{padding:11px 13px;min-height:120px;resize:vertical;font-size:13px}
+input:focus,select:focus,textarea:focus{border-color:var(--neon);box-shadow:0 0 0 3px var(--neons)}
+select{padding-right:32px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path fill='%238e8e93' d='M0 0l5 6 5-6z'/></svg>");background-repeat:no-repeat;background-position:right 10px center}
+.ga{display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.g2{display:grid;gap:9px;grid-template-columns:1fr 1fr}
+.btn{appearance:none;border:1px solid var(--bdr2);background:var(--s2);color:var(--txt);font:700 11px var(--ui);letter-spacing:.05em;text-transform:uppercase;min-height:var(--tap);padding:0 14px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.btn:active{opacity:.65}.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}.btn.ok{background:var(--green);border-color:var(--green);color:#000}.btn.bad{background:var(--red);border-color:var(--red);color:#fff}.btn.neon{background:var(--neon);border-color:var(--neon);color:#000}.btn.warn{background:var(--orange);border-color:var(--orange);color:#000}.btn.purple{background:var(--purple);border-color:var(--purple);color:#fff}.btn.ghost{background:transparent;border-color:transparent}.btn.full{width:100%}
+.btn.sm{min-height:38px;font-size:10px;padding:0 11px;border-radius:7px}.btn.icon{width:38px;padding:0}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{background:var(--s3);color:var(--muted);font:800 9px var(--ui);letter-spacing:.1em;text-transform:uppercase;padding:8px 5px;text-align:left;border-bottom:1px solid var(--bdr);white-space:nowrap;position:sticky;top:0;z-index:2}
+.tbl td{padding:5px 4px;border-bottom:1px solid var(--bdr);vertical-align:middle}
+.tbl td input,.tbl td select{height:40px;font-size:13px;background:transparent;border-color:transparent;padding:0 4px;min-width:0}
+.tbl td input:focus,.tbl td select:focus{background:var(--bg);border-color:var(--neon)}
+.mhc{font:800 13px var(--mono);color:var(--neon);text-align:right;padding-right:6px!important}
+.dic{font:700 11px var(--mono);color:var(--purple);text-align:right}
+.kpi{background:var(--bg);border:1px solid var(--bdr);border-radius:var(--r);padding:8px 10px;margin-bottom:6px}
+.kpi .kl{font:800 8px var(--ui);letter-spacing:.18em;color:var(--txt2);text-transform:uppercase}
+.kpi .kv{font:800 18px var(--mono);margin-top:2px;letter-spacing:-.5px}
+.slr{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--bdr)}
+.slr:last-child{border-bottom:none}
+.slr label{min-width:150px;font:700 10px var(--ui);text-transform:uppercase;letter-spacing:.07em;color:var(--txt2)}
+.slr input[type=range]{flex:1;min-height:var(--tap);-webkit-appearance:none;height:5px;border-radius:3px;background:var(--bdr2);cursor:pointer}
+.slr input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:var(--neon);border:2px solid #000;margin-top:-12px}
+.slr .sv{font:800 13px var(--mono);color:var(--green);min-width:38px;text-align:right}
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;z-index:200;align-items:flex-end;justify-content:center}
+.mbg.on{display:flex}
+.mbox{background:var(--s1);border-radius:18px 18px 0 0;border-top:1px solid var(--bdr2);max-height:92vh;width:100%;max-width:680px;display:flex;flex-direction:column}
+.mh{padding:13px 18px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.mh h3{font:800 11px var(--ui);letter-spacing:.12em;text-transform:uppercase}
+.mb{padding:14px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.mf{padding:11px 14px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-wrap:wrap;padding-bottom:calc(11px + env(safe-area-inset-bottom))}
+.fab{position:fixed;right:14px;bottom:calc(70px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;background:var(--neon);border:none;color:#000;font-size:26px;font-weight:900;display:none;align-items:center;justify-content:center;box-shadow:0 4px 22px rgba(0,229,255,.4);cursor:pointer;z-index:70}
+.fab:active{transform:scale(.9)}
+.rbox{background:var(--bg);border:1px solid var(--bdr);border-radius:9px;padding:11px;font:12px/1.6 var(--mono);white-space:pre-wrap;color:var(--txt2);overflow:auto;max-height:55vh;-webkit-overflow-scrolling:touch}
+.gr{display:flex;align-items:center;min-height:30px;border-bottom:1px solid var(--bdr)}
+.gn{width:140px;flex-shrink:0;font:11px var(--mono);color:var(--txt2);padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gbw{flex:1;position:relative;height:24px}
+.gb{position:absolute;top:3px;height:18px;background:var(--s3);border:1px solid var(--bdr2);border-radius:3px;overflow:hidden}
+.gf{position:absolute;inset:0;background:var(--blue)}.gb.done .gf{background:var(--green)}
+.gl{position:absolute;left:5px;top:0;bottom:0;display:flex;align-items:center;font:700 9px var(--mono);color:#fff;text-shadow:0 0 4px #000}
+.toast{position:fixed;bottom:calc(74px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--s2);border:1px solid var(--neon);padding:9px 16px;border-radius:9px;font:700 12px var(--ui);z-index:300;animation:tfa .18s ease-out;white-space:nowrap;max-width:92vw;text-align:center;pointer-events:none}
+@keyframes tfa{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+#isoShell{display:flex;flex-direction:column;gap:8px}
+.iso-tp{display:flex;flex-wrap:wrap;gap:5px;padding:8px}
+.iso-cv-wrap{background:#0c0c0f;border:1px solid var(--bdr);border-radius:8px;overflow:hidden;position:relative;touch-action:none}
+#isoCanvas{display:block;width:100%;touch-action:none}
+.iso-props{background:var(--s1);border:1px solid var(--bdr);border-radius:8px;padding:8px;margin-top:6px}
+.iso-props h4{font:800 8px var(--ui);letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.iso-stat{font:11px/1.7 var(--mono);color:var(--txt2);margin-bottom:2px}
+.iso-stat b{color:var(--neon)}
+.props-fld{margin-bottom:8px}
+.props-fld label{display:block;font:800 8px var(--ui);letter-spacing:.14em;color:var(--muted);margin-bottom:3px;text-transform:uppercase}
+.itb{background:var(--s2);border:1px solid var(--bdr);color:var(--txt2);font:600 10px var(--ui);padding:6px 10px;border-radius:5px;cursor:pointer;display:inline-flex;align-items:center;min-height:36px}
+.itb.on,.itb:active{background:var(--neon);color:#000;border-color:var(--neon)}
+.iso-len-inp{position:absolute;background:#0a0a0a;color:#00e5ff;border:2px solid #00e5ff;border-radius:5px;font:800 14px monospace;text-align:center;z-index:60;padding:0 4px;outline:none}
+.tube-card{background:var(--bg);border:1px solid var(--bdr);border-left:3px solid var(--teal);border-radius:var(--r);margin-bottom:8px;padding:10px 12px}
+</style>
+</head>
+<body>
+<div id="hdr">
+  <div class="brand">TINGLE ESTIMATOR<small>Pipe · Touch · Offline</small></div>
+  <div style="display:flex;gap:6px">
+    <button class="btn sm pri" id="btnSave">Save</button>
+    <button class="btn sm" id="btnMenu">···</button>
+  </div>
+</div>
+<div id="kbar">
+  <div class="kchip"><div class="kl">Quote</div><div class="kv" id="k-quote" style="color:var(--green)">$0</div></div>
+  <div class="kchip"><div class="kl">Raw MH</div><div class="kv" id="k-rawmh" style="color:var(--orange)">0.0</div></div>
+  <div class="kchip"><div class="kl">Adj MH</div><div class="kv" id="k-mh" style="color:var(--red)">0.0</div></div>
+  <div class="kchip"><div class="kl">Efficiency</div><div class="kv" id="k-eff">0%</div></div>
+  <div class="kchip"><div class="kl">$/MH</div><div class="kv" id="k-cpm" style="color:var(--neon)">$0</div></div>
+  <div class="kchip"><div class="kl">Pipe LF</div><div class="kv" id="k-lf">0</div></div>
+  <div class="kchip"><div class="kl">Tube MH</div><div class="kv" id="k-tubemh" style="color:var(--teal)">0</div></div>
+  <div class="kchip"><div class="kl">Total DI</div><div class="kv" id="k-di" style="color:var(--purple)">0</div></div>
+  <div class="kchip"><div class="kl">Joints</div><div class="kv" id="k-jt" style="color:var(--blue)">0</div></div>
+  <div class="kchip"><div class="kl">Duration</div><div class="kv" id="k-dur" style="color:var(--yellow)">0d</div></div>
+</div>
+
+<!-- PROJECT -->
+<div id="pane-project" class="pane on">
+  <div class="sec"><div class="sec-h"><h3>Project Info</h3></div><div class="sec-b">
+    <div class="ga">
+      <div class="fld"><label>Project Name</label><input id="p-name" type="text"/></div>
+      <div class="fld"><label>Client / Owner</label><input id="p-client" type="text"/></div>
+      <div class="fld"><label>Estimator</label><input id="p-est" type="text"/></div>
+      <div class="fld"><label>Bid Due</label><input id="p-due" type="date"/></div>
+      <div class="fld"><label>Site Location</label><input id="p-loc" type="text"/></div>
+      <div class="fld"><label>Bid Number</label><input id="p-bid" type="text"/></div>
+      <div class="fld"><label>Revision</label><input id="p-rev" type="text" value="A"/></div>
+      <div class="fld"><label>Shift Pattern</label><select id="p-shift"></select></div>
+    </div>
+  </div></div>
+  <div class="sec"><div class="sec-h"><h3>Financial Parameters</h3></div><div class="sec-b">
+    <div class="ga">
+      <div class="fld"><label>Labor Rate $/Hr</label><input id="r-labor" type="text" inputmode="decimal" value="65"/></div>
+      <div class="fld"><label>Per Diem $/Day</label><input id="r-perdiem" type="text" inputmode="decimal" value="150"/></div>
+      <div class="fld"><label>Rod/Wire $/lb</label><input id="r-rod" type="text" inputmode="decimal" value="3.50"/></div>
+      <div class="fld"><label>Shield Gas $/CF</label><input id="r-gas" type="text" inputmode="decimal" value="0.40"/></div>
+      <div class="fld"><label>NDT Shot $</label><input id="r-ndt" type="text" inputmode="decimal" value="150"/></div>
+      <div class="fld"><label>NDT Coverage %</label><input id="r-ndtpct" type="text" inputmode="decimal" value="10"/></div>
+      <div class="fld"><label>Overhead %</label><input id="r-oh" type="text" inputmode="decimal" value="8"/></div>
+      <div class="fld"><label>Bond + Ins %</label><input id="r-bond" type="text" inputmode="decimal" value="1.5"/></div>
+      <div class="fld"><label>Profit %</label><input id="r-profit" type="text" inputmode="decimal" value="15"/></div>
+    </div>
+  </div></div>
+  <div class="sec"><div class="sec-h"><h3>Efficiency — 6 Factor (J.S. Page)</h3><button class="btn sm ghost" id="eff-reset">Reset</button></div>
+    <div class="sec-b" id="effSliders"></div>
+  </div>
+</div>
+
+<!-- PIPE TAKEOFF -->
+<div id="pane-takeoff" class="pane">
+  <div class="sec"><div class="sec-h"><h3>Pipe Spool Takeoff</h3>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <button class="btn neon" id="addSpoolBtn">+ Spool</button>
+      <button class="btn sm" id="addMultiBtn">+ Multiple</button>
+      <button class="btn sm bad" id="clearSpoolBtn">Clear</button>
+    </div></div>
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+  <table class="tbl" id="spoolTbl">
+    <thead><tr>
+      <th style="min-width:70px">Tag</th><th style="min-width:50px">NPS</th><th style="min-width:68px">Schedule</th><th style="min-width:85px">Connection</th><th style="min-width:100px">Material</th>
+      <th style="min-width:85px">LF</th><th style="min-width:48px">Ftgs</th><th style="min-width:48px">Wlds</th>
+      <th style="min-width:100px">Process</th><th style="min-width:50px">Fab</th>
+      <th style="min-width:75px">Elevation</th><th style="min-width:72px">Layout</th><th style="min-width:72px">Congest</th><th style="min-width:72px">Difficulty</th>
+      <th style="min-width:45px">Hgrs</th><th style="min-width:95px">Hanger Type</th>
+      <th style="min-width:65px">MH</th><th style="min-width:50px">DI</th><th style="min-width:45px">Jts</th><th style="min-width:62px">Act</th>
+    </tr></thead>
+    <tbody id="spoolBody"></tbody>
+    <tfoot><tr>
+      <td colspan="16" style="text-align:right;padding:6px 8px;color:var(--txt2);font:700 10px var(--ui)">TOTALS</td>
+      <td class="mhc" id="tot-mh">0.0</td><td class="dic" id="tot-di">0.0</td>
+      <td style="text-align:right;font:700 10px var(--mono);padding-right:4px" id="tot-jt">0</td><td></td>
+    </tr></tfoot>
+  </table></div>
+</div>
+</div>
+
+<!-- TUBING TAKEOFF -->
+<div id="pane-tubing" class="pane">
+  <div class="sec"><div class="sec-h">
+    <h3>Tubing Takeoff</h3>
+    <div style="display:flex;gap:5px"><button class="btn neon" id="addTubeBtn" style="background:var(--teal);border-color:var(--teal);color:#000">+ Tubing</button></div>
+  </div>
+  <div style="padding:6px 12px;background:var(--s2);border-bottom:1px solid var(--bdr);font:11px var(--ui);color:var(--txt2)">
+    1/4" through 2" OD · various wall thicknesses · lay/bending/compression fittings · 0.40 MH/LF base
+  </div>
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+  <table class="tbl" id="tubeTbl">
+    <thead><tr>
+      <th style="min-width:65px">Tag</th><th style="min-width:58px">OD</th><th style="min-width:65px">Wall</th><th style="min-width:75px">Material</th>
+      <th style="min-width:85px">LF</th><th style="min-width:68px">Hand Bnds</th><th style="min-width:68px">Mach Bnds</th>
+      <th style="min-width:68px">Hand Comp</th><th style="min-width:68px">Hyd Comp</th>
+      <th style="min-width:70px">Elevation</th><th style="min-width:70px">Congest</th><th style="min-width:70px">Difficulty</th>
+      <th style="min-width:62px">Total MH</th><th style="min-width:50px">Act</th>
+    </tr></thead>
+    <tbody id="tubeBody"></tbody>
+    <tfoot><tr><td colspan="12" style="text-align:right;padding:6px 8px;color:var(--txt2);font:700 10px var(--ui)">TUBING TOTAL</td><td class="mhc" id="tube-tot">0.0</td><td></td></tr></tfoot>
+  </table></div>
+  <div style="padding:8px 12px;background:var(--s2);border-top:1px solid var(--bdr)">
+    <div style="font:800 9px var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:5px">Base MH Reference</div>
+    <table class="tbl" style="max-width:680px"><thead><tr><th>OD</th><th>Lay/LF</th><th>Hand Bend</th><th>Mach Bend</th><th>Hand Comp</th><th>Hyd Comp</th></tr></thead>
+    <tbody id="tubeRefBody"></tbody></table>
+  </div>
+</div>
+</div>
+
+<!-- SPECIALTY -->
+<div id="pane-specialty" class="pane">
+  <div class="sec"><div class="sec-h"><h3>Specialty Operations</h3><button class="btn purple" id="addSpecBtn">+ Add</button></div>
+  <table class="tbl" id="specTbl">
+    <thead><tr><th style="min-width:200px">Operation</th><th style="min-width:70px">Qty</th><th style="min-width:70px">Unit MH</th><th style="min-width:70px">Total MH</th><th style="width:36px"></th></tr></thead>
+    <tbody id="specBody"></tbody>
+    <tfoot><tr><td colspan="3" style="text-align:right;padding:6px 8px;color:var(--txt2);font:700 10px var(--ui)">TOTAL</td><td class="mhc" id="spec-tot">0.0</td><td></td></tr></tfoot>
+  </table></div>
+</div>
+
+<!-- CONSUMABLES -->
+<div id="pane-cons" class="pane">
+  <div class="sec"><div class="sec-h"><h3>Weld Consumables</h3>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <span style="font:10px var(--ui);color:var(--teal)">&#10022; auto-fill from NPS+Process</span>
+      <button class="btn warn" id="addConBtn">+ Add</button>
+    </div></div>
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+  <table class="tbl" id="conTbl">
+    <thead><tr>
+      <th style="min-width:50px">NPS</th><th style="min-width:68px">Schedule</th><th style="min-width:100px">Process</th>
+      <th style="min-width:55px">Qty</th><th style="min-width:72px">Hr/Weld &#10022;</th>
+      <th style="min-width:70px">Purge Gas</th><th style="min-width:62px">CFH &#10022;</th>
+      <th style="min-width:70px">Shield Gas</th><th style="min-width:62px">CFH &#10022;</th>
+      <th style="min-width:72px">Rod lb/ea &#10022;</th><th style="min-width:45px">Cuts</th>
+      <th style="min-width:58px">Rod lbs</th><th style="min-width:62px">Purge CF</th><th style="min-width:62px">Shield CF</th><th style="min-width:52px">Wheels</th>
+      <th style="width:32
